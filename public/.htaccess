@@ -1,8 +1,1 @@
-RewriteEngine On
-# RewriteBase /smartEnergy/
-# Hide index.php
-RewriteCond %{REQUEST_URI} !^/index\.php
-RewriteRule ^ index.php [QSA,L]
-
-
 
