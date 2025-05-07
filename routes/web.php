@@ -1,19 +1,28 @@
 <?php
 
 $request = $_SERVER['REQUEST_URI'];
-
 $request = str_replace('/public/index.php', '/smartEnergy', $request);
 
-$viewDir = '/resources/Views/';
+$viewDir = dirname(__DIR__) . '/resources/Views/';
 
+echo $request;
 
 switch ($request) {
     case '/smartEnergy':
-    case '/landing':
-        require __DIR__ . $viewDir . 'landing.php';
+    case '/':
+        require $viewDir . 'landing.php';
+        break;
+    case '/login':
+        require $viewDir . 'login.php';
+        break;
+    case '/dashboard':
+        require $viewDir . 'dashblard.php';
+        break;
+    case '/logout':
+        require $viewDir . 'logout.php';
         break;
 
     default:
-        require __DIR__ . $viewDir . '404.php';
+        require $viewDir . '404.php';
         break;
 }
