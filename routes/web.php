@@ -12,7 +12,7 @@ switch ($request) {
     case '/':
         require $viewDir . 'landing.php';
         break;
-    case '/login':
+    case '/smartEnergy/login':
         require $viewDir . 'login.php';
         break;
     case '/dashboard':
