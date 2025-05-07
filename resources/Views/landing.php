@@ -8,7 +8,7 @@ $path = $_SERVER['REQUEST_URI'] . '/resources/Views';
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smart Energy Management</title>
+    <title>Smart Energy</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -26,7 +26,7 @@ $path = $_SERVER['REQUEST_URI'] . '/resources/Views';
                     <a href="#contact" class="text-gray-600 hover:text-green-600">Contact</a>
                 </div>
                 <div>
-                    <a href="../smartEnergy/login">
+                    <a href="/public/smartEnergy/login">
                         <button class="inline-block bg-green-600 text-white px-6 py-3 rounded-xl text-lg hover:bg-blue-700">Sign-in</button>
                     </a>
                 </div>
