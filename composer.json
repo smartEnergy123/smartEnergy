@@ -1,0 +1,20 @@
+{
+    "name": "hp/smart-energy",
+    "description": "Generating Renewable Energy",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Hp\\SmartEnergy\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Smart Energy Team"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "phpmailer/phpmailer": "^6.10",
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
