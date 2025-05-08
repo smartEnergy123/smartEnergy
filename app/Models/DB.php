@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace APP\Models;
 
 use App\Services\MessageService;
@@ -52,6 +54,7 @@ class DB
         return $sql->execute($params);
     }
 
+    // gets a single user data
     public function fetchSingleData(string $query, $params = [])
     {
 
@@ -61,6 +64,7 @@ class DB
         return $sql->fetch(PDO::FETCH_ASSOC);
     }
 
+    // gets all the users data
     public function fetchAllData(string $query, $params = [])
     {
         $db = new self();

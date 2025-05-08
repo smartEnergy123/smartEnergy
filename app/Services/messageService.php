@@ -8,7 +8,7 @@ class MessageService
     public static function errorMessage(string $msg)
     {
 
-        echo '<div class="error">' . $msg . '</div>';
+        return '<div class="error">' . $msg . '</div>';
 
         echo '
         <script>
