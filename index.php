@@ -5,4 +5,4 @@ if (!session_start()) {
 }
 
 
-require __DIR__ . '/../routes/web.php';
+require __DIR__ . '/routes/web.php';

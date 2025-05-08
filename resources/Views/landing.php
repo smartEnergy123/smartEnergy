@@ -26,7 +26,7 @@ $path = $_SERVER['REQUEST_URI'] . '/resources/Views';
                     <a href="#contact" class="text-gray-600 hover:text-green-600">Contact</a>
                 </div>
                 <div>
-                    <a href="/public/smartEnergy/login">
+                    <a href="/smartEnergy/login">
                         <button class="inline-block bg-green-600 text-white px-6 py-3 rounded-xl text-lg hover:bg-blue-700">Sign-in</button>
                     </a>
                 </div>

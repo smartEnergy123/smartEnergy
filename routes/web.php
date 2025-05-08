@@ -1,8 +1,7 @@
 <?php
 
 $request = $_SERVER['REQUEST_URI'];
-$request = str_replace('/public/', '', $request);
-
+$request = str_replace('/index.php', '/', $request);
 $viewDir = dirname(__DIR__) . '/resources/Views/';
 
 switch ($request) {
@@ -10,13 +9,13 @@ switch ($request) {
     case '/':
         require $viewDir . 'landing.php';
         break;
-    case 'smartEnergy/login':
+    case '/smartEnergy/login':
         require $viewDir . 'login.php';
         break;
-    case 'client/dashboard':
+    case '/client/dashboard':
         require $viewDir . 'client/' . 'dashboard.php';
         break;
-    case 'admin/dashboard':
+    case '/admin/dashboard':
         require $viewDir . 'admin/' . 'dashboard.php';
         break;
     case '/logout':
