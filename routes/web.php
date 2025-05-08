@@ -12,6 +12,9 @@ switch ($request) {
     case '/smartEnergy/login':
         require $viewDir . 'login.php';
         break;
+    case '/processAuth':
+        require $viewDir . 'processAuth.php';
+        break;
     case '/client/dashboard':
         require $viewDir . 'client/' . 'dashboard.php';
         break;

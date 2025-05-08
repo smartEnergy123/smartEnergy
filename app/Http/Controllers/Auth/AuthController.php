@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace app\Http\Controllers\Auth;
+namespace App\Http\Controllers\Auth;
 
-use APP\Models\DB;
+use App\Models\DB;
 use App\Services\MessageService;
 use PDOException;
 

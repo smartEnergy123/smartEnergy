@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace APP\Models;
 
 use App\Services\MessageService;

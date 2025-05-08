@@ -1,6 +1,6 @@
 <?php
 
-use app\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\AuthController;
 use App\Services\MessageService;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
@@ -22,7 +22,7 @@ function processLogin()
         echo MessageService::errorMessage("Ensure all fields are filled!!!");
     } else {
         $authUser = new AuthController;
-        $authUserResult = $authUser->login($email, $password);
+        $authUserResult = $authUser->login((string)$email, (string)$password);
 
         if ($authUserResult === false) {
             echo MessageService::errorMessage("User Does not exists...");
