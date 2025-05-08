@@ -4,7 +4,8 @@
     "type": "project",
     "autoload": {
         "psr-4": {
-            "Hp\\SmartEnergy\\": "src/"
+            "Hp\\SmartEnergy\\": "src/",
+            "App\\": "app/"
         }
     },
     "authors": [

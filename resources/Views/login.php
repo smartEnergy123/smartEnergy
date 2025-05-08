@@ -33,7 +33,7 @@
         <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <h1 class="text-2xl font-bold text-green-600">SmartEnergy</h1>
             <nav class="space-x-4">
-                <a href="/smartEnergy" class="text-gray-600 hover:text-green-600">Home</a>
+                <a href="/" class="text-gray-600 hover:text-green-600">Home</a>
                 <a href="#" class="text-green-600 font-semibold">Login</a>
             </nav>
         </div>
