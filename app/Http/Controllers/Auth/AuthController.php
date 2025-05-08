@@ -47,4 +47,27 @@ class AuthController
             return false;
         };
     }
+
+    public function register(string $username, string $email, string $password)
+    {
+        try {
+            $db = new DB;
+            $query = "INSERT INTO users (username, email, password) VALUES (:username, :email, :password)";
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $params = [
+                ':username' => $username,
+                ':email' => $email,
+                ':password' => $hashedPassword
+            ];
+            $result =  $db->execute($query, $params);
+            if (empty($result)) {
+                return false;
+            } else {
+                return true;
+            }
+        } catch (PDOException $error) {
+            echo MessageService::errorMessage("Failed to relate to the database and register this user...") . $error->getMessage();
+            return false;
+        }
+    }
 }

@@ -28,11 +28,33 @@ function processLogin()
             echo MessageService::errorMessage("User Does not exists...");
         } else {
             $_SESSION['user_data'] = $authUserResult;
-            header("Location: /dashboard");
-            exit;
+            if ($_SESSION['user_data']['user_type'] === 'admin') {  //redirect the users to their respective dashboards
+                header("Location: /admin/dashboard"); //admin
+                exit;
+            } else {
+                header("Location: /client/dashboard"); //client
+                exit;
+            }
         }
     }
 }
 
 // process user registration
-function processRegistration() {}
+function processRegistration()
+{
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+
+    if (empty($username) || empty($email) || empty($password)) {
+        echo MessageService::errorMessage("Ensure all fields are filled!!!");
+    } else {
+        $registerUser = new AuthController;
+
+        if ($registerUser->register((string) $username, (string) $email, (string)$password) != false) {
+            echo MessageService::successMessage("User Does not exists...");
+        } else {
+            echo MessageService::errorMessage("Failed to register this user... processRegistration function processAuth");
+        }
+    }
+}
