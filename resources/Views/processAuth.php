@@ -49,6 +49,7 @@ function processRegistration()
     if (empty($username) || empty($email) || empty($password)) {
         echo MessageService::errorMessage("Ensure all fields are filled!!!");
     } else {
+
         $registerUser = new AuthController;
 
         if ($registerUser->register((string) $username, (string) $email, (string)$password) != false) {
