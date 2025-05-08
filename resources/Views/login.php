@@ -70,7 +70,7 @@
     </section>
 
     <!-- Footer -->
-    <footer class="bg-gray-100 text-center py-6 text-gray-500 text-sm">
+    <footer class="bg-gray-100 text-center text-gray-900 text-sm">
         &copy; 2025 SmartEnergy Team
     </footer>
 

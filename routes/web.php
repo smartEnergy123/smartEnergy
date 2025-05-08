@@ -9,8 +9,11 @@ switch ($request) {
     case '/':
         require $viewDir . 'landing.php';
         break;
-    case '/smartEnergy/login':
+    case '/login':
         require $viewDir . 'login.php';
+        break;
+    case '/register':
+        require $viewDir . 'register.php';
         break;
     case '/processAuth':
         require $viewDir . 'processAuth.php';
