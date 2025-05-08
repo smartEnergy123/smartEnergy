@@ -1,5 +1,8 @@
 <?php
 
+namespace APP\Models;
+
+use App\Services\MessageService;
 use Dotenv\Dotenv;
 use PDO;
 use PDOException;
@@ -17,8 +20,10 @@ class DB
 
     public function __construct()
     {
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
-        $dotenv->load();
+        if (!getenv('DB_HOST')) {
+            $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+            $dotenv->load();
+        }
         $this->dbname = getenv('DB_NAME');
         $this->password = getenv('DB_PASSWORD');
         $this->username = getenv('DB_USERNAME');
@@ -36,5 +41,31 @@ class DB
         };
 
         return $this->conn;
+    }
+
+
+    // retrieve and update
+    public function execute(string $query, $params = [])
+    {
+        $db = new self();
+        $sql = $db->connection()->prepare($query);
+        return $sql->execute($params);
+    }
+
+    public function fetchSingleData(string $query, $params = [])
+    {
+
+        $db = new self();
+        $sql = $db->connection()->prepare($query);
+        $sql->execute($params);
+        return $sql->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function fetchAllData(string $query, $params = [])
+    {
+        $db = new self();
+        $sql = $db->connection()->prepare($query);
+        $sql->execute($params);
+        return $sql->fetch(PDO::FETCH_ASSOC);
     }
 }
