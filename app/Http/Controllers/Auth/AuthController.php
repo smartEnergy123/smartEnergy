@@ -48,6 +48,7 @@ class AuthController
         };
     }
 
+    // Register a new user
     public function register(string $username, string $email, string $password)
     {
         try {

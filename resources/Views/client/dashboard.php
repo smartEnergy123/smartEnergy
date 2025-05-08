@@ -41,7 +41,7 @@
         <header class="bg-white shadow-md py-8 px-6 flex justify-between items-center">
             <div class="flex items-center space-x-4">
                 <button class="text-green-600 md:hidden" onclick="toggleSidebar()">
-                    <img src="https://img.icons8.com/material-rounded/24/menu--v1.png" />
+                    <img src="https://img.icons8.com/material-rounded/24/menu--v1.png" alt="user" />
                 </button>
                 <h1 class="text-lg font-semibold text-gray-800">Welcome, <span class="text-green-600 font-bold">
                         <?php echo $_SESSION['username'] ?? 'User'; ?>
@@ -63,15 +63,24 @@
         <main class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div class="bg-white rounded-lg p-6 shadow hover:shadow-lg transition">
-                    <h3 class="text-lg font-bold text-green-700 mb-2">Current Usage</h3>
+                    <div class="flex justify-between">
+                        <h3 class="text-lg font-bold text-green-700 mb-2">Current Usage</h3>
+                        <p class="px-4">⚡</p>
+                    </div>
                     <p class="text-gray-600">2.4 kWh / 5.0 kWh</p>
                 </div>
                 <div class="bg-white rounded-lg p-6 shadow hover:shadow-lg transition">
-                    <h3 class="text-lg font-bold text-green-700 mb-2">Plan</h3>
+                    <div class="flex justify-between">
+                        <h3 class="text-lg font-bold text-green-700 mb-2">Plan</h3>
+                        <p class="text-gray-600 px-4">📄</p>
+                    </div>
                     <p class="text-gray-600">Premium - Expires in 20 days</p>
                 </div>
                 <div class="bg-white rounded-lg p-6 shadow hover:shadow-lg transition">
-                    <h3 class="text-lg font-bold text-green-700 mb-2">Total Energy Saved</h3>
+                    <div class="flex justify-between">
+                        <h3 class="text-lg font-bold text-green-700 mb-2">Total Energy Saved</h3>
+                        <p class="text-black-900 px-4">∑</p>
+                    </div>
                     <p class="text-gray-600">91 kWh this month</p>
                 </div>
             </div>
