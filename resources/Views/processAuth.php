@@ -22,7 +22,9 @@ function processLogin()
         $_SESSION['error_message'] = MessageService::errorMessage("Ensure all fields are filled!!!");
 ?>
         <script>
-            window.history.back();
+            setTimeout(() => {
+                window.history.back();
+            }, 200);
         </script>
         <?php
     } else {
@@ -30,12 +32,14 @@ function processLogin()
         $authUserResult = $authUser->login((string)$email, (string)$password);
 
         if ($authUserResult === false) {
-            $_SESSION['error_message'] =  MessageService::errorMessage("User Does not exists...");
         ?>
             <script>
-                window.history.back();
+                setTimeout(() => {
+                    window.location.href = '/smartEnergy/login';
+                }, 200);
             </script>
         <?php
+            $_SESSION['error_message'] =  MessageService::errorMessage("User Does not exists...");
         } else {
             $_SESSION['user_data'] = $authUserResult;
             if ($_SESSION['user_data']['user_type'] === 'admin') {  //redirect the users to their respective dashboards

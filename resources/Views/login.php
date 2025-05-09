@@ -1,37 +1,3 @@
-<?php
-if (session_status() === PHP_SESSION_NONE) session_start();
-
-$success = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : null;
-$error = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : null;
-
-unset($_SESSION['success_message'], $_SESSION['error_message']);
-?>
-
-<?php if ($success): ?>
-    <div class="success"><?= htmlspecialchars($success) ?></div>
-<?php endif; ?>
-
-<?php if ($error): ?>
-    <div class="error"><?= htmlspecialchars($error) ?></div>
-<?php endif; ?>
-
-<?php if ($success || $error): ?>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const success = document.querySelectorAll('.success');
-            const error = document.querySelectorAll('.error');
-
-            success.forEach(msg => msg.style.color = 'green');
-            error.forEach(msg => msg.style.color = 'red');
-
-            setTimeout(() => {
-                window.history.back();
-            }, 9000);
-        });
-    </script>
-<?php endif; ?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -57,6 +23,13 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         .animate-fade-in {
             animation: fadeIn 0.8s ease-out forwards;
         }
+
+        .msg {
+            border: 2px solid gray;
+            box-shadow: 2px 2px 2px gray;
+            position: absolute;
+            left: 25%;
+        }
     </style>
 </head>
 
@@ -78,6 +51,54 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full animate-fade-in">
             <h2 class="text-3xl font-bold text-green-700 text-center mb-6">Welcome Back</h2>
             <form action="/smartEnergy/processAuth" method="POST" class="space-y-5">
+                <div class="msg">
+                    <?php
+
+                    if (isset($_SESSION['success_message'])) {
+                        echo '<div class="success"> ' . $_SESSION['success_message'] . '</div>';
+                        unset($_SESSION['success_message']);
+                    ?>
+                        <script>
+                            document.addEventListener("DOMContentLoaded", () => {
+                                var success = document.querySelectorAll('.success');
+
+                                if (success.length > 0) {
+                                    success.forEach(function(msg) {
+                                        msg.style.color = 'green';
+                                    })
+                                }
+
+                                setTimeout(() => {
+                                    window.location.href = '/smartEnergy/login'; //redirect to the previous page
+                                }, 9000);
+                            });
+                        </script>
+                    <?php
+                    }
+
+                    if (isset($_SESSION['error_message'])) {
+                        echo '<div class="error"> ' . $_SESSION['error_message'] . '</div>';
+                        unset($_SESSION['error_message']);
+                    ?>
+                        <script>
+                            document.addEventListener("DOMContentLoaded", () => {
+                                var error = document.querySelectorAll('.error');
+
+                                if (error.length > 0) {
+                                    error.forEach(function(msg) {
+                                        msg.style.color = 'red';
+                                    })
+                                }
+
+                                setTimeout(() => {
+                                    window.location.href = '/smartEnergy/login'; //redirect to the previous page
+                                }, 9000);
+                            });
+                        </script>
+                    <?php
+                    }
+                    ?>
+                </div>
                 <div>
                     <label for="email" class="block mb-1 text-gray-700">Email</label>
                     <input type="email" id="email" name="email" required class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" autocomplete="off" />

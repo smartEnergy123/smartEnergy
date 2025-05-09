@@ -19,6 +19,13 @@
                 opacity: 1;
             }
         }
+
+        .msg {
+            border: 2px solid gray;
+            box-shadow: 2px 2px 2px gray;
+            position: absolute;
+            left: 25%;
+        }
     </style>
 </head>
 
@@ -41,6 +48,54 @@
             <h2 class="text-2xl font-bold text-center mb-6 text-green-700">Create an Account</h2>
 
             <form action="/smartEnergy/register" method="POST" class="space-y-4">
+                <div class="msg">
+                    <?php
+
+                    if (isset($_SESSION['success_message'])) {
+                        echo '<div class="success"> ' . $_SESSION['success_message'] . '</div>';
+                        unset($_SESSION['success_message']);
+                    ?>
+                        <script>
+                            document.addEventListener("DOMContentLoaded", () => {
+                                var success = document.querySelectorAll('.success');
+
+                                if (success.length > 0) {
+                                    success.forEach(function(msg) {
+                                        msg.style.color = 'green';
+                                    })
+                                }
+
+                                setTimeout(() => {
+                                    window.location.href = '/smartEnergy/login'; //redirect to the previous page
+                                }, 9000);
+                            });
+                        </script>
+                    <?php
+                    }
+
+                    if (isset($_SESSION['error_message'])) {
+                        echo '<div class="error"> ' . $_SESSION['error_message'] . '</div>';
+                        unset($_SESSION['error_message']);
+                    ?>
+                        <script>
+                            document.addEventListener("DOMContentLoaded", () => {
+                                var error = document.querySelectorAll('.error');
+
+                                if (error.length > 0) {
+                                    error.forEach(function(msg) {
+                                        msg.style.color = 'red';
+                                    })
+                                }
+
+                                setTimeout(() => {
+                                    window.location.href = '/smartEnergy/login'; //redirect to the previous page
+                                }, 9000);
+                            });
+                        </script>
+                    <?php
+                    }
+                    ?>
+                </div>
                 <div>
                     <label for="username" class="block text-sm font-semibold text-gray-700">Username</label>
                     <input type="text" id="username" name="username" required autocomplete="off"
