@@ -64,7 +64,7 @@
                 </button>
             </form>
             <p class="mt-6 text-center text-sm text-gray-600">Don't have an account?
-                <a href="#" class="text-green-600 hover:underline font-medium">Register</a>
+                <a href="/smartEnergy/register" class="text-green-600 hover:underline font-medium">Register</a>
             </p>
         </div>
     </section>

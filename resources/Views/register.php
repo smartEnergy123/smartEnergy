@@ -30,7 +30,7 @@
             <h1 class="text-xl font-bold text-green-700">SmartEnergy</h1>
             <nav class="space-x-4">
                 <a href="/" class="text-gray-700 hover:text-green-600">Home</a>
-                <a href="/login" class="text-gray-700 hover:text-green-600">Login</a>
+                <a href="/smartEnergy/login" class="text-gray-700 hover:text-green-600">Login</a>
             </nav>
         </div>
     </header>
@@ -65,7 +65,7 @@
                 </button>
 
                 <p class="text-center text-sm text-gray-600 mt-3">
-                    Already have an account? <a href="/login" class="text-green-600 hover:underline">Login</a>
+                    Already have an account? <a href="/smartEnergy/login" class="text-green-600 hover:underline">Login</a>
                 </p>
             </form>
         </div>

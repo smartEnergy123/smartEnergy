@@ -1,7 +1,13 @@
 <?php
 
 $request = $_SERVER['REQUEST_URI'];
-$request = str_replace('/index.php', '/', $request);
+
+if ($request === '/smartEnergy/') {
+    $request = str_replace('/smartEnergy/', '/', $request);
+} else {
+    $request = str_replace('/index.php', '/', $request);
+}
+
 $viewDir = dirname(__DIR__) . '/resources/Views/';
 
 switch ($request) {
@@ -9,13 +15,13 @@ switch ($request) {
     case '/':
         require $viewDir . 'landing.php';
         break;
-    case '/login':
+    case '/smartEnergy/login':
         require $viewDir . 'login.php';
         break;
-    case '/register':
+    case '/smartEnergy/register':
         require $viewDir . 'register.php';
         break;
-    case '/processAuth':
+    case '/smartEnergy/processAuth':
         require $viewDir . 'processAuth.php';
         break;
     case '/client/dashboard':
