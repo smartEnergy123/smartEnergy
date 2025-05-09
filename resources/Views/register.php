@@ -40,7 +40,7 @@
         <div class="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md slide-in">
             <h2 class="text-2xl font-bold text-center mb-6 text-green-700">Create an Account</h2>
 
-            <form action="/register" method="POST" class="space-y-4">
+            <form action="/smartEnergy/register" method="POST" class="space-y-4">
                 <div>
                     <label for="username" class="block text-sm font-semibold text-gray-700">Username</label>
                     <input type="text" id="username" name="username" required autocomplete="off"
