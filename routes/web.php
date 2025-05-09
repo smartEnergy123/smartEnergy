@@ -7,7 +7,7 @@ if ($request === '/smartEnergy/') {
 } else {
     $request = str_replace('/index.php', '/', $request);
 }
-
+// echo $request;
 $viewDir = dirname(__DIR__) . '/resources/Views/';
 
 switch ($request) {
@@ -24,10 +24,10 @@ switch ($request) {
     case '/smartEnergy/processAuth':
         require $viewDir . 'processAuth.php';
         break;
-    case '/client/dashboard':
+    case '/smartEnergy/client/dashboard/':
         require $viewDir . 'client/' . 'dashboard.php';
         break;
-    case '/admin/dashboard':
+    case '/smartEnergy/admin/dashboard/':
         require $viewDir . 'admin/' . 'dashboard.php';
         break;
     case '/logout':

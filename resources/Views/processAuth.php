@@ -6,10 +6,10 @@ use App\Services\MessageService;
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 
-if (isset($_POST['loginBtn'])) {
-    processLogin();
-} else {
+if (isset($_POST['registerBtn'])) {
     processRegistration();
+} else {
+    processLogin();
 }
 
 // Process user login
@@ -61,26 +61,36 @@ function processRegistration()
     $password = $_POST['password'];
 
     if (empty($username) || empty($email) || empty($password)) {
+        ?>
+        <script>
+            setTimeout(() => {
+                window.location.href = '/smartEnergy/register';
+            }, 200);
+        </script>
+        <?php
         $_SESSION['error_message'] = MessageService::errorMessage("Ensure all fields are filled!!!");
     } else {
 
         $registerUser = new AuthController;
 
         if ($registerUser->register((string) $username, (string) $email, (string)$password) != false) {
-            $_SESSION['success_message'] = MessageService::successMessage("User Does not exists...");
         ?>
             <script>
-                window.history.back();
+                setTimeout(() => {
+                    window.location.href = '/smartEnergy/register';
+                }, 200);
             </script>
         <?php
-
+            $_SESSION['success_message'] = MessageService::successMessage("Account was created successfully...");
         } else {
-            $_SESSION['error_message'] = MessageService::errorMessage("Failed to register this user... processRegistration function processAuth");
         ?>
             <script>
-                window.history.back();
+                setTimeout(() => {
+                    window.location.href = '/smartEnergy/register';
+                }, 200);
             </script>
 <?php
+            $_SESSION['error_message'] = MessageService::errorMessage("Failed to register this user... processRegistration function processAuth");
         }
     }
 }

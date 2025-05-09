@@ -66,7 +66,7 @@
                                 }
 
                                 setTimeout(() => {
-                                    window.location.href = '/smartEnergy/login'; //redirect to the previous page
+                                    window.location.href = '/smartEnergy/register'; //redirect to the previous page
                                 }, 9000);
                             });
                         </script>
@@ -88,7 +88,7 @@
                                 }
 
                                 setTimeout(() => {
-                                    window.location.href = '/smartEnergy/login'; //redirect to the previous page
+                                    window.location.href = '/smartEnergy/register'; //redirect to the previous page
                                 }, 9000);
                             });
                         </script>
