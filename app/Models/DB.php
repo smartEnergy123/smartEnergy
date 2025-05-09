@@ -20,14 +20,13 @@ class DB
 
     public function __construct()
     {
-        if (!getenv('DB_HOST')) {
-            $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
-            $dotenv->load();
-        }
-        $this->dbname = getenv('DB_NAME');
-        $this->password = getenv('DB_PASSWORD');
-        $this->username = getenv('DB_USERNAME');
-        $this->host = getenv('DB_HOST');
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+        $dotenv->load();
+
+        $this->dbname = $_ENV['DB_NAME'];
+        $this->password = $_ENV['DB_PASSWORD'];
+        $this->username = $_ENV['DB_USERNAME'];
+        $this->host = $_ENV['DB_HOST'];
     }
 
     public function connection()
@@ -47,8 +46,7 @@ class DB
     // retrieve and update
     public function execute(string $query, $params = [])
     {
-        $db = new self();
-        $sql = $db->connection()->prepare($query);
+        $sql = $this->connection()->prepare($query);
         return $sql->execute($params);
     }
 
@@ -56,8 +54,7 @@ class DB
     public function fetchSingleData(string $query, $params = [])
     {
 
-        $db = new self();
-        $sql = $db->connection()->prepare($query);
+        $sql = $this->connection()->prepare($query);
         $sql->execute($params);
         return $sql->fetch(PDO::FETCH_ASSOC);
     }
@@ -65,8 +62,7 @@ class DB
     // gets all the users data
     public function fetchAllData(string $query, $params = [])
     {
-        $db = new self();
-        $sql = $db->connection()->prepare($query);
+        $sql = $this->connection()->prepare($query);
         $sql->execute($params);
         return $sql->fetch(PDO::FETCH_ASSOC);
     }

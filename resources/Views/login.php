@@ -1,3 +1,37 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+$success = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : null;
+$error = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : null;
+
+unset($_SESSION['success_message'], $_SESSION['error_message']);
+?>
+
+<?php if ($success): ?>
+    <div class="success"><?= htmlspecialchars($success) ?></div>
+<?php endif; ?>
+
+<?php if ($error): ?>
+    <div class="error"><?= htmlspecialchars($error) ?></div>
+<?php endif; ?>
+
+<?php if ($success || $error): ?>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const success = document.querySelectorAll('.success');
+            const error = document.querySelectorAll('.error');
+
+            success.forEach(msg => msg.style.color = 'green');
+            error.forEach(msg => msg.style.color = 'red');
+
+            setTimeout(() => {
+                window.history.back();
+            }, 9000);
+        });
+    </script>
+<?php endif; ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 

@@ -19,13 +19,23 @@ function processLogin()
     $password = $_POST['password'];
 
     if (empty($email) || empty($password)) {
-        echo MessageService::errorMessage("Ensure all fields are filled!!!");
+        $_SESSION['error_message'] = MessageService::errorMessage("Ensure all fields are filled!!!");
+?>
+        <script>
+            window.history.back();
+        </script>
+        <?php
     } else {
         $authUser = new AuthController;
         $authUserResult = $authUser->login((string)$email, (string)$password);
 
         if ($authUserResult === false) {
-            echo MessageService::errorMessage("User Does not exists...");
+            $_SESSION['error_message'] =  MessageService::errorMessage("User Does not exists...");
+        ?>
+            <script>
+                window.history.back();
+            </script>
+        <?php
         } else {
             $_SESSION['user_data'] = $authUserResult;
             if ($_SESSION['user_data']['user_type'] === 'admin') {  //redirect the users to their respective dashboards
@@ -47,15 +57,26 @@ function processRegistration()
     $password = $_POST['password'];
 
     if (empty($username) || empty($email) || empty($password)) {
-        echo MessageService::errorMessage("Ensure all fields are filled!!!");
+        $_SESSION['error_message'] = MessageService::errorMessage("Ensure all fields are filled!!!");
     } else {
 
         $registerUser = new AuthController;
 
         if ($registerUser->register((string) $username, (string) $email, (string)$password) != false) {
-            echo MessageService::successMessage("User Does not exists...");
+            $_SESSION['success_message'] = MessageService::successMessage("User Does not exists...");
+        ?>
+            <script>
+                window.history.back();
+            </script>
+        <?php
+
         } else {
-            echo MessageService::errorMessage("Failed to register this user... processRegistration function processAuth");
+            $_SESSION['error_message'] = MessageService::errorMessage("Failed to register this user... processRegistration function processAuth");
+        ?>
+            <script>
+                window.history.back();
+            </script>
+<?php
         }
     }
 }
