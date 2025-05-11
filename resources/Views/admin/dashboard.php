@@ -58,7 +58,7 @@
                 <a href="#" class="block hover:bg-blue-700 p-2 rounded">Dashboard</a>
                 <a href="#" class="block hover:bg-blue-700 p-2 rounded">Manage Users</a>
                 <a href="/smartEnergy/admin/viewPowerStats" class="block hover:bg-blue-700 p-2 rounded">View Power Stats</a>
-                <a href="#" class="block hover:bg-blue-700 p-2 rounded">Simulate Weather</a>
+                <a href="/smartEnergy/admin/simulateWeather" class="block hover:bg-blue-700 p-2 rounded">Simulate Weather</a>
                 <a href="#" class="block hover:bg-blue-700 p-2 rounded">Reports</a>
                 <a href="#" class="block hover:bg-blue-700 p-2 rounded">Settings</a>
             </nav>
