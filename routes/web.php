@@ -30,6 +30,9 @@ switch ($request) {
     case '/smartEnergy/admin/dashboard/':
         require $viewDir . 'admin/' . 'dashboard.php';
         break;
+    case '/smartEnergy/admin/viewPowerStats':
+        require $viewDir . 'admin/' . 'powerStats.php';
+        break;
     case '/logout':
         require $viewDir . 'logout.php';
         break;
