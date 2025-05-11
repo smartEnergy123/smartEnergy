@@ -51,7 +51,9 @@ $housesSupplied = 6;
         </div>
 
         <div class="text-center mt-6">
-            <a href="dashboard.php" class="text-blue-500 hover:underline">← Back to Dashboard</a>
+            <a href="/smartEnergy/admin/dashboard/"><button class="text-white-500 hover:underline z-50 bg-blue-800 p-2 rounded shadow">
+                    ← Back to Dashboard
+                </button></a>
         </div>
     </div>
 
