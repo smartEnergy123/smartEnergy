@@ -49,16 +49,17 @@ class AuthController
     }
 
     // Register a new user
-    public function register(string $username, string $email, string $password)
+    public function register(string $username, string $email, string $password, string $userType)
     {
         try {
             $db = new DB;
-            $query = "INSERT INTO users (username, email, password) VALUES (:username, :email, :password)";
+            $query = "INSERT INTO users (username, email, user_password, user_type) VALUES (:username, :email, :password, :uTyp)";
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             $params = [
                 ':username' => $username,
                 ':email' => $email,
-                ':password' => $hashedPassword
+                ':password' => $hashedPassword,
+                ':uTyp' => $userType
             ];
             $result =  $db->execute($query, $params);
             if (empty($result)) {

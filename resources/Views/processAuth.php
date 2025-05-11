@@ -43,10 +43,10 @@ function processLogin()
         } else {
             $_SESSION['user_data'] = $authUserResult;
             if ($_SESSION['user_data']['user_type'] === 'admin') {  //redirect the users to their respective dashboards
-                header("Location: /admin/dashboard"); //admin
+                header("Location: /smartEnergy/admin/dashboard/"); //admin
                 exit;
             } else {
-                header("Location: /client/dashboard"); //client
+                header("Location: /smartEnergy/client/dashboard/"); //client
                 exit;
             }
         }
@@ -72,8 +72,8 @@ function processRegistration()
     } else {
 
         $registerUser = new AuthController;
-
-        if ($registerUser->register((string) $username, (string) $email, (string)$password) != false) {
+        $userType = "client"; //default
+        if ($registerUser->register((string) $username, (string) $email, (string)$password, (string) $userType) != false) {
         ?>
             <script>
                 setTimeout(() => {

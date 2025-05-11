@@ -44,7 +44,7 @@
                     <img src="https://img.icons8.com/material-rounded/24/menu--v1.png" alt="user" />
                 </button>
                 <h1 class="text-lg font-semibold text-gray-800">Welcome, <span class="text-green-600 font-bold">
-                        <?php echo $_SESSION['username'] ?? 'User'; ?>
+                        <?php echo $_SESSION['user_data']['username'] ?? 'User'; ?>
                     </span></h1>
             </div>
             <div class="relative">
