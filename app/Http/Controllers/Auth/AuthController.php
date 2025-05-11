@@ -54,24 +54,48 @@ class AuthController
     public function register(string $username, string $email, string $password, string $userType)
     {
         try {
-            $db = new DB;
-            $query = "INSERT INTO users (username, email, user_password, user_type) VALUES (:username, :email, :password, :uTyp)";
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $params = [
-                ':username' => $username,
-                ':email' => $email,
-                ':password' => $hashedPassword,
-                ':uTyp' => $userType
-            ];
-            $result =  $db->execute($query, $params);
-            if (empty($result)) {
-                return false;
+
+            //Determine if the user already exists
+            $isUser = $this->isUser((string)$email);
+            if ($isUser === false || !empty($isUser)) {
+                $_SESSION['error'] = MessageService::errorMessage("User Already exists...");
             } else {
-                return true;
+                // Register a new user
+                $db = new DB;
+                $query = "INSERT INTO users (username, email, user_password, user_type) VALUES (:username, :email, :password, :uTyp)";
+                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                $params = [
+                    ':username' => $username,
+                    ':email' => $email,
+                    ':password' => $hashedPassword,
+                    ':uTyp' => $userType
+                ];
+                $result =  $db->execute($query, $params);
+                if (empty($result)) {
+                    return false;
+                } else {
+                    return true;
+                }
             }
         } catch (PDOException $error) {
             echo MessageService::errorMessage("Failed to relate to the database and register this user...") . $error->getMessage();
             return false;
         }
+    }
+
+    // Determine if a user exists
+    public function isUser(string $email)
+    {
+        try {
+            $db = new DB;
+            $query = "SELECT * FROM users WHERE email=:email";
+            $params = [':email' => $email];
+            $result = $db->fetchSingleData($query, $params);
+            return $result; //user found
+        } catch (PDOException $error) {
+            echo MessageService::errorMessage("Failed to relate to the database and find this user isUser??...") . $error->getMessage();
+            return false;
+        }
+        return false; //user not found
     }
 }
