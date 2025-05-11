@@ -1,5 +1,9 @@
 <?php
 // dashboard.php
+if (!$_SESSION['user_state']) {
+    header('Location: /smartEnergy/login');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

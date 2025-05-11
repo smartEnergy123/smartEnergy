@@ -1,4 +1,8 @@
 <?php
+if (!$_SESSION['user_state']) {
+    header('Location: /smartEnergy/login');
+    exit;
+}
 // Default outputs based on weather
 $weather = $_POST['weather'] ?? 'Sunny';
 $solarOutput = 0;

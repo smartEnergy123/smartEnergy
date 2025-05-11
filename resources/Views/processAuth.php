@@ -42,6 +42,7 @@ function processLogin()
             $_SESSION['error_message'] =  MessageService::errorMessage("User Does not exists...");
         } else {
             $_SESSION['user_data'] = $authUserResult;
+            $_SESSION['user_state'] = 'logged_in';
             if ($_SESSION['user_data']['user_type'] === 'admin') {  //redirect the users to their respective dashboards
                 header("Location: /smartEnergy/admin/dashboard/"); //admin
                 exit;
@@ -72,7 +73,7 @@ function processRegistration()
     } else {
 
         $registerUser = new AuthController;
-        $userType = "client"; //default
+        $userType = "admin"; //default
         if ($registerUser->register((string) $username, (string) $email, (string)$password, (string) $userType) != false) {
         ?>
             <script>
@@ -90,7 +91,6 @@ function processRegistration()
                 }, 200);
             </script>
 <?php
-            $_SESSION['error_message'] = MessageService::errorMessage("Failed to register this user... processRegistration function processAuth");
         }
     }
 }

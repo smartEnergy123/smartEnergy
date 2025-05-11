@@ -1,4 +1,8 @@
 <?php
+if (!$_SESSION['user_state']) {
+    header('Location: /smartEnergy/login');
+    exit;
+}
 // This file shows current power statistics
 // You can later replace these with dynamic variables or database queries
 $solarOutput = 1200; // in Watts
@@ -19,7 +23,6 @@ $housesSupplied = 6;
 </head>
 
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-6">
-
     <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-6 space-y-6">
         <h1 class="text-3xl font-bold text-center text-blue-700">🔋 Power Statistics Dashboard</h1>
 
