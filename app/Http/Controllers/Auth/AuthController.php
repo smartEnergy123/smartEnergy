@@ -46,6 +46,8 @@ class AuthController
             echo MessageService::errorMessage("Failed to login this user...") . $error->getMessage();
             return false;
         };
+
+        return false;
     }
 
     // Register a new user
