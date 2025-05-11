@@ -36,7 +36,7 @@ switch ($request) {
     case '/smartEnergy/admin/simulateWeather':
         require $viewDir . 'admin/' . 'simulateWeather.php';
         break;
-    case '/logout':
+    case '/smartEnergy/logout':
         require $viewDir . 'logout.php';
         break;
 

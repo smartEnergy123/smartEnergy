@@ -4,6 +4,14 @@ if (!$_SESSION['user_state']) {
     header('Location: /smartEnergy/login');
     exit;
 }
+
+require_once __DIR__ . '/../../../vendor/autoload.php';
+
+use Dotenv\Dotenv;
+
+$dotenv = Dotenv::createImmutable(__DIR__ . '/../../../');
+$dotenv->load();
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -46,8 +54,8 @@ if (!$_SESSION['user_state']) {
         }
 
         .bolt {
-            display: block;
-            opacity: 0.5;
+            display: none;
+            opacity: 1;
             font-size: 24px;
         }
     </style>
@@ -65,6 +73,9 @@ if (!$_SESSION['user_state']) {
                 <a href="/smartEnergy/admin/simulateWeather" class="block hover:bg-blue-700 p-2 rounded">Simulate Weather</a>
                 <a href="#" class="block hover:bg-blue-700 p-2 rounded">Reports</a>
                 <a href="#" class="block hover:bg-blue-700 p-2 rounded">Settings</a>
+                <a href="/smartEnergy/logout" class="block p-2">
+                    <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-200 transition">Logout</button>
+                </a>
             </nav>
         </aside>
 
@@ -72,9 +83,10 @@ if (!$_SESSION['user_state']) {
         <button onclick="toggleSidebar()" class="fixed top-4 left-4 md:hidden z-50 bg-blue-800 text-white p-2 rounded shadow">☰ Menu</button>
 
         <!-- Main Content -->
-        <main class="flex-1 p-6 ml-0 md:ml-64 transition-all duration-300">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold">Smart Energy Admin Dashboard</h1>
+        <main class="flex-1 p-6 ml-0 md:ml-30 transition-all duration-300">
+            <h1 class="text-3xl font-bold">Smart Energy Admin Dashboard</h1>
+            <div class="flex justify-between items-center mb-6  mt-2">
+                <h1 class="text-3xl font-bold">Welcome <span class="text-green-600"><?php echo $_SESSION['user_data']['username'] ?? 'user'; ?></span></h1>
                 <button id="simButton" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">Start Simulation</button>
             </div>
 
@@ -123,8 +135,8 @@ if (!$_SESSION['user_state']) {
 
     <!-- Simulation Script -->
     <script>
-        const apiKey = "091e69af47ec41acdbb6e9138757b482";
-        const city = "Lagos";
+        const apiKey = "<?php echo $_ENV['WEATHER_API_KEY']; ?>";
+        const city = "Alba Iulia";
 
         let battery = 500;
         const batteryCapacity = 1000;
@@ -176,7 +188,6 @@ if (!$_SESSION['user_state']) {
 
             sun.style.opacity = solar > 200 ? 1 : 0.4;
             turbine.style.animation = wind > 150 ? "spin 1s linear infinite" : "spin 3s linear infinite";
-            bolt.style.opacity = consumption > 500 ? 1 : 0.5;
         }
 
         function toggleSimulation() {
@@ -185,6 +196,7 @@ if (!$_SESSION['user_state']) {
                 intervalId = null;
                 simButton.textContent = "Start Simulation";
                 turbine.style.animation = "none";
+                bolt.style.display = 'none';
             } else {
                 intervalId = setInterval(async () => {
                     const {
@@ -201,6 +213,7 @@ if (!$_SESSION['user_state']) {
                 }, 3000);
 
                 simButton.textContent = "Stop Simulation";
+                bolt.style.display = 'block';
             }
         }
 

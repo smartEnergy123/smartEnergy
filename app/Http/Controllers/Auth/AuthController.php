@@ -83,6 +83,8 @@ class AuthController
         }
     }
 
+    public function logout() {}
+
     // Determine if a user exists
     public function isUser(string $email)
     {
