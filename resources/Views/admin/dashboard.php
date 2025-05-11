@@ -37,6 +37,10 @@
                 opacity: 0.4;
             }
         }
+
+        .bolt {
+            display: none;
+        }
     </style>
 </head>
 
@@ -74,7 +78,8 @@
                 <!-- Solar Panel -->
                 <div class="bg-white shadow-lg rounded p-4 text-center">
                     <h2 class="text-xl font-semibold mb-4">Solar Panel</h2>
-                    <svg viewBox="0 0 200 150" class="mx-auto h-40">
+                    <p class="px-10 ml-20 relative top-20 bolt">⚡</p>
+                    <svg viewBox="0 0 200 150" class="mx-auto h-40 relative bottom-2">
                         <circle id="sun" cx="160" cy="30" r="20" fill="yellow" class="shine" />
                         <rect x="30" y="100" width="140" height="30" fill="#4B5563" />
                         <line x1="40" y1="100" x2="40" y2="130" stroke="white" />
@@ -113,14 +118,54 @@
     </div>
 
     <!-- JavaScript -->
+    <script src="/public/js/simulate.js"></script>
     <script>
-        let battery = 0;
-        let intervalId = null;
+        let battery = 500; // initial battery storage in Wh
+        const batteryCapacity = 1000;
         let isSimulating = false;
+        let intervalId = null;
+
+        const weatherStates = ['Sunny', 'Cloudy', 'Rainy'];
+        let currentWeather = 'Sunny';
+
+        const bolt = document.getElementsByClassName("bolt")[0];
 
         function toggleSidebar() {
             const sidebar = document.getElementById("sidebar");
             sidebar.classList.toggle("-translate-x-full");
+        }
+
+        function simulateWeather() {
+            const rand = Math.random();
+            if (rand < 0.5) return 'Sunny';
+            else if (rand < 0.8) return 'Cloudy';
+            else return 'Rainy';
+        }
+
+        function calculateSolarOutput(weather) {
+            switch (weather) {
+                case 'Sunny':
+                    return Math.floor(Math.random() * 150 + 250); // 250–400Wh
+                case 'Cloudy':
+                    return Math.floor(Math.random() * 100 + 100); // 100–200Wh
+                case 'Rainy':
+                    return Math.floor(Math.random() * 50 + 30); // 30–80Wh
+                default:
+                    return 0;
+            }
+        }
+
+        function calculateWindOutput(weather) {
+            switch (weather) {
+                case 'Rainy':
+                    return Math.floor(Math.random() * 200 + 150); // 150–350Wh
+                case 'Cloudy':
+                    return Math.floor(Math.random() * 100 + 100); // 100–200Wh
+                case 'Sunny':
+                    return Math.floor(Math.random() * 80 + 50); // 50–130Wh
+                default:
+                    return 0;
+            }
         }
 
         function toggleSimulation() {
@@ -131,26 +176,34 @@
                 isSimulating = true;
                 button.textContent = "End Simulation";
                 blades.classList.add("rotate-slow");
+                bolt.style.display = 'block';
 
-                intervalId = setInterval(() => {
-                    const solar = Math.floor(Math.random() * 300 + 200);
-                    const wind = Math.floor(Math.random() * 150 + 100);
-                    const consumption = Math.floor(Math.random() * 200 + 100);
-
-                    battery = Math.max(0, Math.min(1000, battery + solar + wind - consumption));
+                intervalId = setInterval(async () => {
+                    const {
+                        solar,
+                        wind,
+                        condition
+                    } = await fetchWeather();
+                    const consumption = Math.floor(Math.random() * 300 + 200);
+                    battery += (solar + wind - consumption);
+                    battery = Math.max(0, Math.min(battery, batteryCapacity));
 
                     document.getElementById("solarOutput").textContent = `${solar}`;
                     document.getElementById("windOutput").textContent = `${wind}`;
                     document.getElementById("consumption").textContent = `${consumption}`;
                     document.getElementById("batteryLevel").textContent = `${battery}`;
-                }, 2000);
+                }, 3000);
+
+
             } else {
                 isSimulating = false;
                 button.textContent = "Start Simulation";
                 clearInterval(intervalId);
                 blades.classList.remove("rotate-slow");
+                bolt.style.display = 'none';
 
-                battery = 0;
+                battery = 500;
+
                 document.getElementById("solarOutput").textContent = "0";
                 document.getElementById("windOutput").textContent = "0";
                 document.getElementById("consumption").textContent = "0";
@@ -158,6 +211,7 @@
             }
         }
     </script>
+
 </body>
 
 </html>
