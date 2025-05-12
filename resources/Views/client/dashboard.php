@@ -62,7 +62,7 @@ if (!isset($_SESSION['user_state'])) {
                 <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg hidden">
                     <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">👤 Account</a>
                     <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚙️ Settings</a>
-                    <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">🚪 Logout</a>
+                    <a href="/smartEnergy/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">🚪 Logout</a>
                 </div>
             </div>
         </header>
