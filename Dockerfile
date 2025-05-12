@@ -1,23 +1,30 @@
 FROM php:8.2-apache
 
-# Enable mod_rewrite
+# Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
-# Allow .htaccess overrides
-RUN sed -i '/<Directory \/var\/www\/html>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+# Set Apache to listen on port 9000 instead of 80
+RUN sed -i 's/Listen 80/Listen 9000/' /etc/apache2/ports.conf && \
+    sed -i 's/<VirtualHost \*:80>/<VirtualHost *:9000>/' /etc/apache2/sites-available/000-default.conf
 
-# Install PHP extensions
+# Set DocumentRoot to /var/www/html/public
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+
+# Update Apache config to reflect new DocumentRoot
+RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot ${APACHE_DOCUMENT_ROOT}|' /etc/apache2/sites-available/000-default.conf && \
+    sed -i "/<Directory \/var\/www\/html>/,/<\/Directory>/ s|/var/www/html|${APACHE_DOCUMENT_ROOT}|g" /etc/apache2/apache2.conf
+
+# Install required PHP extensions
 RUN docker-php-ext-install pdo pdo_mysql && docker-php-ext-enable pdo_mysql
 
-# Change Apache to listen on port 8080 (for Railway)
-RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf && \
-    sed -i 's/<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-available/000-default.conf
-
-# Copy source code
+# Copy application source code
 COPY . /var/www/html/
 
-# Expose the correct port
-EXPOSE 8080
+# Set correct permissions (optional but recommended)
+RUN chown -R www-data:www-data /var/www/html
 
-# Start Apache in foreground
+# Expose port 9000 to Railway
+EXPOSE 9000
+
+# Start Apache in the foreground
 CMD ["apache2-foreground"]
