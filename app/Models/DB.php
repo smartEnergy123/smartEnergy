@@ -20,8 +20,13 @@ class DB
 
     public function __construct()
     {
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../../');
         $dotenv->load();
+
+        // $this->dbname = $_ENV['DB_NAME'];
+        // $this->password = $_ENV['DB_PASSWORD'];
+        // $this->username = $_ENV['DB_USERNAME'];
+        // $this->host = $_ENV['DB_HOST'];
 
         $this->dbname = $_ENV['DB_NAME'];
         $this->password = $_ENV['DB_PASSWORD'];
