@@ -62,7 +62,8 @@ class DB
     public function fetchSingleData(string $query, $params = [])
     {
 
-        $sql = $this->connection()->prepare($query);
+        $db = new self();
+        $sql = $db->connection()->prepare($query);
         $sql->execute($params);
         return $sql->fetch(PDO::FETCH_ASSOC);
     }
