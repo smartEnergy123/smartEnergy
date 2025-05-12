@@ -20,19 +20,22 @@ class DB
 
     public function __construct()
     {
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../../');
-        $dotenv->load();
+        // Load .env variables manually
+        $envPath = __DIR__ . '/../../../.env';
+        if (file_exists($envPath)) {
+            $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+                if (strpos(trim($line), '#') === 0) continue;
+                list($key, $value) = explode('=', $line, 2);
+                putenv(trim($key) . '=' . trim($value));
+            }
+        }
 
-        // $this->dbname = $_ENV['DB_NAME'];
-        // $this->password = $_ENV['DB_PASSWORD'];
-        // $this->username = $_ENV['DB_USERNAME'];
-        // $this->host = $_ENV['DB_HOST'];
-
-$this->dbname = getenv('DB_NAME');
-$this->password = getenv('DB_PASSWORD');
-$this->username = getenv('DB_USERNAME');
-$this->host = getenv('DB_HOST');
-
+        // Assign environment variables
+        $this->dbname = getenv('DB_NAME');
+        $this->password = getenv('DB_PASSWORD');
+        $this->username = getenv('DB_USERNAME');
+        $this->host = getenv('DB_HOST');
     }
 
     public function connection()
