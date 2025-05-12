@@ -25,10 +25,10 @@ class DB
         $dotenv->load();
         }
         
-        $this->dbname = $_ENV['DB_NAME'];
-        $this->password = $_ENV['DB_PASSWORD'];
-        $this->username = $_ENV['DB_USERNAME'];
-        $this->host = $_ENV['DB_HOST'];
+    $this->dbname = getenv('DB_NAME');
+    $this->password = getenv('DB_PASSWORD');
+    $this->username = getenv('DB_USERNAME');
+    $this->host = getenv('DB_HOST');
 
         echo '<br>dbname = ' . $this->dbname;
         echo '<br>password = ' . $this->password;
