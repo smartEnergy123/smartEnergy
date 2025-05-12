@@ -73,7 +73,7 @@ function processRegistration()
     } else {
 
         $registerUser = new AuthController;
-        $userType = "admin"; //default
+        $userType = "client"; //default
         if ($registerUser->register((string) $username, (string) $email, (string)$password, (string) $userType) != false) {
         ?>
             <script>
