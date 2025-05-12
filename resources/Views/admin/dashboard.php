@@ -1,6 +1,6 @@
 <?php
 // dashboard.php
-if (!$_SESSION['user_state']) {
+if (!isset($_SESSION['user_state'])) {
     header('Location: /smartEnergy/login');
     exit;
 }
