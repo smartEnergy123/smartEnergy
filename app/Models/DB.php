@@ -24,11 +24,17 @@ class DB
         $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
         $dotenv->load();
         }
-        print_r($_ENV);
+        
         $this->dbname = $_ENV['DB_NAME'];
         $this->password = $_ENV['DB_PASSWORD'];
         $this->username = $_ENV['DB_USERNAME'];
         $this->host = $_ENV['DB_HOST'];
+
+        echo '<br>dbname = ' . $this->dbname;
+        echo '<br>password = ' . $this->password;
+        echo '<br>username = ' . $this->username;
+        echo '<br>HOST = ' . $this->host;
+
     }
 
     public function connection()
