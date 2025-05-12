@@ -24,7 +24,7 @@ class DB
         $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
         $dotenv->load();
         }
-        print_r(ENV);
+        print_r($_ENV);
         $this->dbname = $_ENV['DB_NAME'];
         $this->password = $_ENV['DB_PASSWORD'];
         $this->username = $_ENV['DB_USERNAME'];
