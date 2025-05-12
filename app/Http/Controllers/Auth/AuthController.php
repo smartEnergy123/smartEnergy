@@ -83,7 +83,34 @@ class AuthController
         }
     }
 
-    public function logout() {}
+    public function logout()
+    {
+        // Start the session if it's not already started.
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        session_unset(); // Unset all session variables.
+
+        // Delete the session cookie.
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params["path"],
+                $params["domain"],
+                $params["secure"],
+                $params["httponly"]
+            );
+        }
+        session_destroy();
+
+        // Redirect to the login page.
+        header("Location: /smartEnergy/login");
+        exit;
+    }
 
     // Determine if a user exists
     public function isUser(string $email)

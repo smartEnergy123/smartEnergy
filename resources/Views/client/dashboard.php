@@ -3,6 +3,7 @@ if (!$_SESSION['user_state']) {
     header('Location: /smartEnergy/login');
     exit;
 }
+
 ?>
 
 <!DOCTYPE html>
