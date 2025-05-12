@@ -20,7 +20,7 @@ class DB
 
     public function __construct()
     {
-        if(!$_ENV['DB_HOST']){
+        if(!getenv('DB_HOST')){
         $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
         $dotenv->load();
         }
