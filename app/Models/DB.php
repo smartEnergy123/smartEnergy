@@ -29,12 +29,6 @@ class DB
     $this->password = getenv('DB_PASSWORD');
     $this->username = getenv('DB_USERNAME');
     $this->host = getenv('DB_HOST');
-
-        echo '<br>dbname = ' . $this->dbname;
-        echo '<br>password = ' . $this->password;
-        echo '<br>username = ' . $this->username;
-        echo '<br>HOST = ' . $this->host;
-
     }
 
     public function connection()
