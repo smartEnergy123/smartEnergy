@@ -59,6 +59,7 @@ class AuthController
             $isUser = $this->isUser((string)$email);
             if (!empty($isUser)) {
                 $_SESSION['error_message'] = MessageService::errorMessage("User Already exists...");
+                return false;
             } else {
                 // Register a new user
                 $db = new DB;
