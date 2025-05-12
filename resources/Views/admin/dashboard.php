@@ -7,10 +7,10 @@ if (!$_SESSION['user_state']) {
 
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
-use Dotenv\Dotenv;
-
-$dotenv = Dotenv::createImmutable(__DIR__ . '/../../../');
-$dotenv->load();
+        if(!getenv('DB_HOST')){
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+        $dotenv->load();
+        }
 
 ?>
 <!DOCTYPE html>
@@ -135,7 +135,7 @@ $dotenv->load();
 
     <!-- Simulation Script -->
     <script>
-        const apiKey = "<?php echo $_ENV['WEATHER_API_KEY']; ?>";
+        const apiKey = "<?php echo getenv('WEATHER_API_KEY'); ?>";
         const city = "Alba Iulia";
 
         let battery = 500;
