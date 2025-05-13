@@ -87,7 +87,7 @@ if (!getenv('DB_HOST')) {
 
         <!-- Main Content -->
         <main class="flex-1 p-6 ml-0 md:ml-30 transition-all duration-300">
-            <h1 class="text-3xl font-bold">Smart Energy Admin Dashboard</h1>
+            <h1 class="text-3xl text-center font-bold">Smart Energy Admin Dashboard</h1>
             <div class="flex justify-between items-center mb-6  mt-2">
                 <h1 class="text-3xl font-bold">Welcome <span class="text-green-600"><?php echo $_SESSION['user_data']['username'] ?? 'user'; ?></span></h1>
                 <button id="simButton" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">Start Simulation</button>
