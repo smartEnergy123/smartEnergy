@@ -1,6 +1,6 @@
 <?php
 if (!isset($_SESSION['user_state'])) {
-    header('Location: /myExpense/login');
+    header('Location: /smartEnergy/login');
     exit;
 }
 

@@ -1,8 +1,9 @@
 <?php
-if (!$_SESSION['user_state']) {
+if (!isset($_SESSION['user_state'])) {
     header('Location: /smartEnergy/login');
     exit;
 }
+
 // This file shows current power statistics
 // You can later replace these with dynamic variables or database queries
 $solarOutput = 1200; // in Watts

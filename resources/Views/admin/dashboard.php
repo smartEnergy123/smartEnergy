@@ -1,16 +1,19 @@
 <?php
+
+use Dotenv\Dotenv;
 // dashboard.php
 if (!isset($_SESSION['user_state'])) {
     header('Location: /smartEnergy/login');
     exit;
 }
 
+
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
-        if(!getenv('DB_HOST')){
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
-        $dotenv->load();
-        }
+if (!getenv('DB_HOST')) {
+    $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+    $dotenv->load();
+}
 
 ?>
 <!DOCTYPE html>
