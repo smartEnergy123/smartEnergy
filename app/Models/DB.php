@@ -64,6 +64,6 @@ class DB
     {
         $sql = $this->connection()->prepare($query);
         $sql->execute($params);
-        return $sql->fetch(PDO::FETCH_ASSOC);
+        return $sql->fetchAll(PDO::FETCH_ASSOC);
     }
 }
