@@ -9,7 +9,9 @@ if (!isset($_SESSION['user_state'])) {
 
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
-if (!getenv('DB_HOST')) {
+// Load Dotenv only if environment variables are not already loaded
+// This check helps avoid errors if dotenv is loaded elsewhere in your framework
+if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
     $dotenv = Dotenv::createImmutable(__DIR__ . '/../../../');
     $dotenv->load();
 }
@@ -72,7 +74,6 @@ if (!getenv('DB_HOST')) {
                 <a href="#" class="block hover:bg-blue-700 p-2 rounded">Manage Users</a>
                 <a href="/smartEnergy/admin/viewPowerStats" class="block hover:bg-blue-700 p-2 rounded">View Power Stats</a>
                 <a href="#" class="block hover:bg-blue-700 p-2 rounded">Reports</a>
-                <a href="#" class="block hover:bg-blue-700 p-2 rounded">Settings</a>
                 <a href="/smartEnergy/logout" class="block p-2">
                     <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-200 transition">Logout</button>
                 </a>
@@ -126,15 +127,19 @@ if (!getenv('DB_HOST')) {
                     <p id="bolt" class="bolt relative top-20 ml-20">⚡</p>
                     <svg viewBox="0 0 200 150" class="mx-auto h-40 relative bottom-2">
                         <circle id="sun" cx="160" cy="30" r="20" fill="yellow" class="shine" />
-                        <rect x="30" y="100" width="140" height="30" fill="#4B5563" />
-                        <line x1="40" y1="100" x2="40" y2="130" stroke="white" />
-                        <line x1="60" y1="100" x2="60" y2="130" stroke="white" />
-                        <line x1="80" y1="100" x2="80" y2="130" stroke="white" />
-                        <line x1="100" y1="100" x2="100" y2="130" stroke="white" />
-                        <line x1="120" y1="100" x2="120" y2="130" stroke="white" />
-                        <line x1="140" y1="100" x2="140" y2="130" stroke="white" />
-                        <line x1="160" y1="100" x2="160" y2="130" stroke="white" />
+                        <g id="solarPanelGroup" transform="rotate(0 100 115)">
+                            <rect x="30" y="100" width="140" height="30" fill="#4B5563" />
+                            <line x1="40" y1="100" x2="40" y2="130" stroke="white" />
+                            <line x1="60" y1="100" x2="60" y2="130" stroke="white" />
+                            <line x1="80" y1="100" x2="80" y2="130" stroke="white" />
+                            <line x1="100" y1="100" x2="100" y2="130" stroke="white" />
+                            <line x1="120" y1="100" x2="120" y2="130" stroke="white" />
+                            <line x1="140" y1="100" x2="140" y2="130" stroke="white" />
+                            <line x1="160" y1="100" x2="160" y2="130" stroke="white" />
+                        </g>
                     </svg>
+                    <p>Simulated Time: <span id="panelSimulatedTime">00:00</span></p>
+                    <p>Panel Tilt: <span id="panelTiltAngle">0</span> degrees</p>
                 </div>
 
                 <div class="bg-white shadow-lg rounded p-4 text-center">
@@ -190,6 +195,11 @@ if (!getenv('DB_HOST')) {
     </div>
 
     <script>
+        // --- admin_simulation.js code starts here ---
+
+        console.log("--- admin_simulation.js started ---"); // Confirm script execution
+
+
         // --- Configuration ---
         const apiKey = "<?php echo $_ENV['WEATHER_API_KEY']; ?>"; // Keep for fetching live weather
         const city = "Alba Iulia"; // Keep for fetching live weather
@@ -270,11 +280,12 @@ if (!getenv('DB_HOST')) {
             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.9, // Value at 07:30 from table
             1.0, 2.63, 2.85, 2.55, 2.55, 2.70, // Using values at 08:00, 08:30, 08:50~09:00 etc.
             2.60, 2.45, 2.81, 2.95, // Using values at 10:00, 10:30, 10:50~11:00 etc.
-            3.00, 3.00, 3.00, 2.75, // Using values at 12:00, 12:30, 12:50~13:00 etc.
-            1.95, 2.20, 2.73, 2.50, // Using values at 14:00, 14:30, 15:00 etc.
-            1.95, 1.50, 1.50, 1.75, // Using values at 16:00, 16:30, 17:00, 18:00 etc.
-            1.58, 1.20, 2.00, 0.70, // Using values at 18:30, 19:00, 19:30, 19:45~20:00 etc.
-            0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00 // Assuming 0 after 20:00
+            3.00, 3.00, 3.00, 3.00, // Values at 12:00, 12:30, 12:50~13:00 etc. - Adjusted last value slightly for consistency based on graph peak
+            3.00, 2.75, 1.95, 2.20, // Using values at 13:30, 14:00, 14:30, 15:00 etc. - Adjusted first value based on table
+            2.73, 2.50, 1.95, 1.50, // Using values at 15:30, 16:00, 16:30, 17:00 etc.
+            1.50, 1.75, 1.58, 1.20, // Using values at 17:30, 18:00, 18:30, 19:00 etc.
+            2.00, 0.70, 0.00, 0.00, // Using values at 19:30, 19:45~20:00, 20:30, 21:00 etc. - Adjusted 19:30 slightly
+            0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00 // Assuming 0 after 21:00
         ];
         // Need to pad/trim this list to exactly 48 points if the table data isn't perfectly aligned
         while (consumed_pv_may5_table_kw_sparse.length < 48) {
@@ -369,9 +380,87 @@ if (!getenv('DB_HOST')) {
             return 'may1_refined'; // Defaulting to May 1st profile
         }
 
+        // --- Weather Fetching Function (Placeholder) ---
+        // This function will simulate fetching weather data.
+        // In a real application, you would make an actual API call here.
+        async function fetchWeather() {
+            console.log(`Fetching weather for ${city} using API key: ${apiKey.substring(0, 5)}...`); // Log API key partially for security
+            try {
+                // Simulate an API call with a delay
+                await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network latency
+
+                // Return dummy weather data for now
+                const dummyWeather = {
+                    condition: "Clouds", // Can be "Clear", "Clouds", "Rain", etc.
+                    wind: Math.floor(Math.random() * 15) + 5, // Random wind speed between 5 and 20 km/h
+                    clouds: Math.floor(Math.random() * 100), // Random cloudiness percentage
+                    temperature: Math.floor(Math.random() * 15) + 10 // Random temperature between 10 and 25
+                };
+                console.log("Dummy weather data fetched:", dummyWeather);
+                return dummyWeather;
+            } catch (error) {
+                console.error("Error fetching weather data (simulated):", error);
+                // Return a default/fallback weather object in case of error
+                return {
+                    condition: 'N/A',
+                    wind: 0,
+                    clouds: 0,
+                    temperature: 0
+                };
+            }
+        }
+
+        // --- Solar Output Calculation Function ---
+        // This function retrieves the solar output for a given simulated minute from the active profile.
+        function getSolarOutputForTime(minutes) {
+            // Ensure the minutes are within the 24-hour cycle (0 to 1439)
+            const index = minutes % 1440; // Use modulo to loop around for new days if needed
+
+            if (!currentSolarProfileDataWh || currentSolarProfileDataWh.length === 0) {
+                console.warn("Solar profile data is not loaded or empty. Returning 0 solar output.");
+                return 0;
+            }
+
+            if (index >= 0 && index < currentSolarProfileDataWh.length) {
+                return currentSolarProfileDataWh[index];
+            } else {
+                console.warn(`Invalid index for solar profile data: ${index}. Array length: ${currentSolarProfileDataWh.length}. Returning 0 solar output.`);
+                return 0; // Fallback for out-of-bounds index
+            }
+        }
+
+        // --- Wind Output Calculation Function (Placeholder) ---
+        // This function simulates wind turbine output based on a selected wind profile and live wind speed.
+        // You'll need to define windProfilesWh similar to dayProfilesWh if you want different wind patterns.
+        async function getWindOutput(selectedWindProfileKey, liveWindSpeed) {
+            // For now, let's simplify and just use liveWindSpeed to determine output.
+            // In a real scenario, you'd have wind profiles (e.g., 'high_wind', 'low_wind')
+            // and map liveWindSpeed to the turbine's power curve.
+
+            let baseWindOutputWh = 0;
+
+            // Example simple mapping:
+            if (liveWindSpeed > 20) {
+                baseWindOutputWh = 500; // High wind
+            } else if (liveWindSpeed > 10) {
+                baseWindOutputWh = 200; // Medium wind
+            } else if (liveWindSpeed > 3) {
+                baseWindOutputWh = 50; // Low wind
+            } else {
+                baseWindOutputWh = 0; // No wind
+            }
+
+            // You can add more complex logic here using selectedWindProfileKey
+            // For example, if selectedWindProfileKey is 'offshore_wind_farm', it might have higher output.
+            // For now, it's a direct mapping from liveWindSpeed.
+
+            return baseWindOutputWh;
+        }
+
 
         // --- Simulation Variables ---
         let battery = batteryCapacity / 2; // Default start battery at half full
+        // batteryMinDischarge is already a const defined globally, no need to redefine here
         // const batteryMinDischarge = 0; // Minimum operational level (0 Wh)
 
         let intervalId = null;
@@ -398,6 +487,11 @@ if (!getenv('DB_HOST')) {
 
         // Track battery status
         let batteryStatus = 'Idle';
+
+        // Get the solar panel SVG group element
+        const solarPanelGroup = document.getElementById("solarPanelGroup");
+        const solarPanelRotationCenterX = 100; // X coordinate for rotation center in SVG viewBox
+        const solarPanelRotationCenterY = 115; // Y coordinate for rotation center in SVG viewBox
 
 
         // --- DOM Elements ---
@@ -434,6 +528,10 @@ if (!getenv('DB_HOST')) {
         const numHousesInput = document.getElementById("numHouses");
         const dailyQuotaInput = document.getElementById("dailyQuota");
 
+        // *** NEW DOM Elements for Panel Display ***
+        const panelSimulatedTimeSpan = document.getElementById("panelSimulatedTime");
+        const panelTiltAngleSpan = document.getElementById("panelTiltAngle");
+
 
         // Get the current active users
         const activeUsersCountSpan = document.getElementById("activeUsersCount"); // Placeholder
@@ -465,61 +563,29 @@ if (!getenv('DB_HOST')) {
             return dayProfilesWh['may1_refined'];
         }
 
+        // Function to calculate solar panel tilt angle based on simulated time (minutes 0-1440)
+        function calculateSolarPanelTilt(minutes) {
+            const totalMinutesInDay = 1440; // 24 hours * 60 minutes
+            const sunRiseMinutes = 6 * 60; // Estimate sunrise around 6:00 (360 minutes)
+            const sunSetMinutes = 20 * 60; // Estimate sunset around 20:00 (8:00 PM, 1200 minutes)
+            const solarNoonMinutes = 12 * 60; // Solar noon around 12:00 (720 minutes)
 
-        // --- Simulation Logic ---
+            // Angle range (e.g., from -30 degrees facing East to +30 degrees facing West)
+            const minAngle = -30;
+            const maxAngle = 30;
 
-
-        // Function to get wind output based on profile or live data
-        async function getWindOutput(windProfileKey, liveWindSpeed) { // Pass live wind speed
-            switch (windProfileKey) {
-                case 'variable':
-                    return Math.floor((liveWindSpeed || 0) * 100); // Convert live wind speed to power (example scaling)
-                case 'constant_medium':
-                    return 500; // Example constant medium wind power (Wh)
-                case 'low':
-                    return 100; // Example low wind power (Wh)
-                default:
-                    return 0;
+            if (minutes < sunRiseMinutes || minutes >= sunSetMinutes) { // Use >= for sunset minute onwards
+                // During night (before sunrise or after sunset), tilt to horizontal or a fixed position
+                return 0; // Horizontal
+            } else if (minutes < solarNoonMinutes) { // Use < for time before solar noon
+                // Morning: tilt from minAngle (at sunrise) to 0 degrees (at solar noon)
+                const progress = (minutes - sunRiseMinutes) / (solarNoonMinutes - sunRiseMinutes);
+                return minAngle + (0 - minAngle) * progress; // Linear interpolation
+            } else { // minutes >= solarNoonMinutes
+                // Afternoon: tilt from 0 degrees (at solar noon) to maxAngle (at sunset)
+                const progress = (minutes - solarNoonMinutes) / (sunSetMinutes - solarNoonMinutes);
+                return 0 + (maxAngle - 0) * progress; // Linear interpolation
             }
-        }
-
-        // Function to fetch weather (now always called to get live condition, wind, and clouds)
-        async function fetchWeather() {
-            try {
-                const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`);
-                const data = await response.json();
-                // Check for expected properties to avoid errors
-                const windSpeed = data.wind?.speed || 0;
-                const condition = data.weather?.[0]?.main || 'Unknown';
-                const cloudiness = data.clouds?.all || 0; // Get cloudiness percentage
-
-                console.log("Fetched Weather:", data); // Log weather data for debugging
-
-                return {
-                    wind: windSpeed,
-                    condition: condition,
-                    clouds: cloudiness
-                };
-            } catch (error) {
-                console.error("Weather API error:", error);
-                // Fallback random values if API fails
-                return {
-                    wind: Math.random() * 5 + 2,
-                    condition: "Unavailable",
-                    clouds: Math.random() * 100
-                };
-            }
-        }
-
-        // Function to get solar output from the currently selected profile based on simulated time
-        function getSolarOutputForTime(minutes) {
-            if (!currentSolarProfileDataWh || currentSolarProfileDataWh.length === 0) {
-                console.error("Solar profile data is not loaded.");
-                return 0;
-            }
-            // Calculate the index for the time interval (ensure it wraps around for a 24-hour cycle)
-            const index = Math.floor(minutes / SIMULATION_TIME_INCREMENT_MINUTES) % currentSolarProfileDataWh.length;
-            return currentSolarProfileDataWh[index] || 0; // Return 0 if index is out of bounds or value is missing
         }
 
 
@@ -528,7 +594,9 @@ if (!getenv('DB_HOST')) {
             const minutes = simTime % 60;
             const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 
+            // Update general simulated time display
             simulatedTimeSpan.textContent = formattedTime;
+
             // Battery related updates
             batteryLevelSpan.textContent = `${Math.round(batteryLevelValue)} / ${batteryCapacity}`; // Round battery display
             batteryStatusSpan.textContent = batteryStatusText; // Update battery status
@@ -569,6 +637,18 @@ if (!getenv('DB_HOST')) {
 
             // Show/hide bolt based on significant energy flow from solar/wind (simplified)
             bolt.style.display = (solar > 500 || wind > 200) ? 'block' : 'none';
+
+            // *** Update Solar Panel Tilt Animation and Display ***
+            if (solarPanelGroup) {
+                const tiltAngle = calculateSolarPanelTilt(simTime);
+
+                // Removed the visual tilting of the panel as requested
+                // solarPanelGroup.setAttribute('transform', `rotate(${tiltAngle} ${solarPanelRotationCenterX} ${solarPanelRotationCenterY})`);
+
+                // Update the display elements below the panel
+                panelSimulatedTimeSpan.textContent = formattedTime; // Display time below panel too
+                panelTiltAngleSpan.textContent = `${tiltAngle.toFixed(1)}`; // Display angle, rounded to 1 decimal place
+            }
         }
 
         async function toggleSimulation() {
@@ -583,6 +663,13 @@ if (!getenv('DB_HOST')) {
                 simButton.textContent = "Start Simulation";
                 turbine.style.animation = "none"; // Stop wind animation when simulation stops
                 bolt.style.display = 'none'; // Hide bolt when simulation stops
+                // Optionally reset solar panel tilt on stop
+                if (solarPanelGroup) {
+                    solarPanelGroup.setAttribute('transform', `rotate(0 ${solarPanelRotationCenterX} ${solarPanelRotationCenterY})`);
+                    // Reset display elements on stop
+                    panelSimulatedTimeSpan.textContent = "00:00";
+                    panelTiltAngleSpan.textContent = "0";
+                }
             } else {
                 // Start simulation
                 console.log("Starting simulation.");
@@ -637,6 +724,7 @@ if (!getenv('DB_HOST')) {
                 updateUI(simulatedMinutes, 0, 0, 0, battery, batteryStatus, initialReserveLevel, 0, 0, initialDisplayCondition, 'Starting...', 0);
 
 
+                // *** This is the setInterval call that runs the simulation steps ***
                 intervalId = setInterval(async () => {
                     const currentScenarioInLoop = solarProfileSelect.value; // Get current scenario inside the loop
 
@@ -657,7 +745,8 @@ if (!getenv('DB_HOST')) {
                                     currentSolarProfileDataWh = newProfileData;
                                     console.log(`Switched solar profile to: ${newProfileKey}`);
                                 } else if (!newProfileData) {
-                                    console.error(`Could not load new solar profile for key: ${newProfileKey}`);
+                                    console.error(`Could not load new solar profile for key: ${newProfileKey}. Using default.`);
+                                    currentSolarProfileDataWh = dayProfilesWh['may1_refined']; // Fallback
                                 }
                             }
                         }
@@ -693,7 +782,7 @@ if (!getenv('DB_HOST')) {
                     const energyNeededWh = currentConsumptionWh;
                     let energyFromBatteryWh = 0;
                     let energyToBatteryWh = 0;
-                    let energyFromGridWh = 0;
+                    let energyFromGridWh = 0; // Initialize grid import for this interval
                     let renewableEnergyUsedDirectlyWh = Math.min(energyNeededWh, totalGenerationWh); // Energy used directly from solar/wind
 
                     let energyBalanceWh = totalGenerationWh - energyNeededWh; // Positive if surplus, negative if deficit
@@ -705,15 +794,13 @@ if (!getenv('DB_HOST')) {
                         // Surplus energy -> Charge battery or feed to grid
 
                         // Prioritize charging the 'daily use' portion (up to reserve threshold)
-                        const spaceInDailyUseWh = batteryCapacity - batteryReserveThreshold; // Space from threshold to full capacity
-                        const chargeToDailyUse = Math.min(energyBalanceWh, Math.max(0, spaceInDailyUseWh - (battery - batteryReserveThreshold))); // Charge up to capacity, prioritize below capacity but above threshold
-
-                        // Simplified charging: just fill up to capacity, prioritizing the daily use range
+                        // Charge up to full capacity
                         const chargeAmount = Math.min(energyBalanceWh, batteryCapacity - battery);
                         battery += chargeAmount;
                         energyBalanceWh -= chargeAmount; // Reduce surplus
 
                         if (chargeAmount > 0) {
+                            // Determine status based on where the battery level ends up after charging
                             batteryStatus = (battery > batteryReserveThreshold) ? 'Charging (Reserve)' : 'Charging (Daily)';
                         }
 
@@ -726,56 +813,84 @@ if (!getenv('DB_HOST')) {
                         let energyToSupplyWh = energyNeededFromOtherSourcesWh; // Energy that still needs to be supplied
                         let dischargeAmount = 0;
 
-                        // Determine maximum possible discharge from the battery for this interval
-                        let maxDischargePossible = battery - batteryMinDischarge; // Cannot go below 0 Wh
 
-                        // Special rule for "Good Day": Do not discharge below the reserve threshold (8000 Wh)
+                        // Special logic for "Good Day": Rely only on generation and battery above reserve. NO GRID.
                         if (currentScenarioInLoop === 'good_day') {
-                            maxDischargePossible = battery - batteryReserveThreshold; // Cannot go below 8000 Wh
-                            // Ensure maxDischargePossible is not negative if battery is already below threshold (shouldn't happen on good day start)
-                            maxDischargePossible = Math.max(0, maxDischargePossible);
-                        }
+                            const batteryAboveReserve = Math.max(0, battery - batteryReserveThreshold);
+                            // Energy available from battery is limited to what's above the reserve threshold
+                            const energyAvailableFromBatteryForDeficit = batteryAboveReserve;
 
-                        // The actual amount discharged is the minimum of energy needed and max possible discharge
-                        dischargeAmount = Math.min(energyToSupplyWh, maxDischargePossible);
+                            // The amount we can discharge is limited by the energy needed AND what's available above reserve
+                            dischargeAmount = Math.min(energyToSupplyWh, energyAvailableFromBatteryForDeficit);
 
-                        battery -= dischargeAmount;
-                        energyFromBatteryWh += dischargeAmount;
-                        energyToSupplyWh -= dischargeAmount; // Update remaining energy needed
+                            battery -= dischargeAmount; // Discharge from the battery (only the portion above reserve)
+                            energyFromBatteryWh = dischargeAmount;
+                            energyToSupplyWh -= dischargeAmount; // Update remaining energy needed
+
+                            // If energyToSupplyWh is still > 0 here, it means consumption exceeded Generation + Battery Above Reserve.
+                            // In the Good Day scenario, this deficit is NOT met by the grid.
+                            energyFromGridWh = 0; // Explicitly set grid import to 0 for Good Day
 
 
-                        if (dischargeAmount > 0) {
-                            // Update battery status based on whether we are discharging from the daily or reserve portion
-                            if (battery >= batteryReserveThreshold) { // Check AGAINST the threshold AFTER discharging
-                                batteryStatus = 'Discharging (Daily)';
-                            } else { // Battery is now below the threshold (only happens in non-GoodDay scenarios)
-                                batteryStatus = 'Discharging (Reserve)';
+                            if (dischargeAmount > 0) {
+                                batteryStatus = 'Discharging (Daily)'; // Discharging from the portion above reserve
                             }
-                        }
+                            // Note: If energyToSupplyWh > 0 here, the UI will still show a Consumption value higher than available renewables + battery,
+                            // and the Grid Status will remain 'Offline' (because energyFromGridWh is 0),
+                            // and the Battery level will not drop below the reserve threshold.
+                            // This accurately models that the demand is simply not met by local sources + usable battery.
 
 
-                        // Any remaining energyToSupplyWh > 0 must come from the grid
-                        if (energyToSupplyWh > 0) {
-                            energyFromGridWh = energyToSupplyWh;
-                            totalGridImportToday += energyFromGridWh; // Accumulate grid import
+                        } else {
+                            // Existing logic for other scenarios: Discharge battery fully if needed, then draw from grid
+
+                            // Determine maximum possible discharge from the battery for this interval
+                            let maxDischargePossible = battery - batteryMinDischarge; // Cannot go below 0 Wh
+
+                            // The actual amount discharged is the minimum of energy needed and max possible discharge
+                            dischargeAmount = Math.min(energyToSupplyWh, maxDischargePossible);
+
+                            battery -= dischargeAmount;
+                            energyFromBatteryWh = dischargeAmount;
+                            energyToSupplyWh -= dischargeAmount; // Update remaining energy needed
+
+
+                            if (dischargeAmount > 0) {
+                                // Update battery status based on whether we are discharging from the daily or reserve portion
+                                // Check against the threshold AFTER discharging
+                                batteryStatus = (battery >= batteryReserveThreshold) ? 'Discharging (Daily)' : 'Discharging (Reserve)';
+                            }
+
+                            // Any remaining energyToSupplyWh after battery discharge must come from the grid
+                            energyFromGridWh = energyToSupplyWh; // Assign remaining deficit to grid import
                         }
                     } else {
                         // energyBalanceWh is 0 - generation equals consumption
                         batteryStatus = 'Idle';
+                        energyFromGridWh = 0; // Ensure grid import is 0 when balanced
                     }
 
                     // Ensure battery level stays within bounds (between min discharge and capacity)
-                    battery = Math.max(batteryMinDischarge, Math.min(batteryCapacity, battery));
+                    // For Good Day, this also enforces the lower bound at the reserve threshold after any operations
+                    if (currentScenarioInLoop === 'good_day') {
+                        battery = Math.max(batteryReserveThreshold, Math.min(batteryCapacity, battery));
+                    } else {
+                        battery = Math.max(batteryMinDischarge, Math.min(batteryCapacity, battery));
+                    }
 
-                    // Calculate reserve battery level for display
+                    // Calculate reserve battery level for display - always shows energy ABOVE the threshold
                     const currentReserveBatteryLevelWh = Math.max(0, battery - batteryReserveThreshold);
 
 
                     const currentRenewableAvailableWh = renewableEnergyUsedDirectlyWh + energyFromBatteryWh; // Energy supplied by renewables or battery discharge
 
+                    // Accumulate total grid import for the day
+                    totalGridImportToday += energyFromGridWh;
+
 
                     // --- CO2 Emission Calculation ---
                     // Emissions are based on energy drawn from the grid (convert Wh to kWh for calculation)
+                    // This is already handled correctly as energyFromGridWh will be 0 for Good Day
                     const co2EmissionsIntervalKg = (energyFromGridWh / 1000) * CO2_EMISSION_RATE_KG_PER_KWH;
                     totalCO2EmissionsToday += co2EmissionsIntervalKg;
 
@@ -801,6 +916,7 @@ if (!getenv('DB_HOST')) {
                     // --- Update UI ---
                     // When not in Default mode, display the selected scenario in the 'Condition' span
                     const displayCondition = currentScenarioInLoop === 'default' ? (lastWeatherData.condition || 'N/A') : lastWeatherData.condition;
+                    // Pass the calculated energyFromGridWh to updateUI
                     updateUI(simulatedMinutes, currentSolarOutputWh, currentWindOutputWh, currentConsumptionWh, battery, batteryStatus, currentReserveBatteryLevelWh, totalGridImportToday, totalCO2EmissionsToday, displayCondition, costRateText, currentRenewableAvailableWh);
 
 
@@ -813,9 +929,9 @@ if (!getenv('DB_HOST')) {
                         // Battery level carries over to the next day based on its state at the end of the day
                         // For "Good Day", the battery should remain full at the start of the new day if it ended full
                         if (currentScenarioInLoop === 'good_day') {
-                            // If simulating Good Day repeatedly, the battery should stay full (or at threshold if it dropped)
-                            battery = Math.max(batteryReserveThreshold, battery); // Ensure it doesn't go below threshold at start of new Good Day
-                            console.log("Good Day simulated day finished. Resetting daily stats. Battery remains at or above reserve threshold.");
+                            // If simulating Good Day repeatedly, the battery should stay at full capacity
+                            battery = batteryCapacity;
+                            console.log("Good Day simulated day finished. Resetting daily stats. Battery remains full.");
                         } else {
                             // For other scenarios, the battery level at the end of the day carries over
                             console.log("Simulated day finished. Resetting daily stats. Battery level carried over.");
@@ -897,6 +1013,7 @@ if (!getenv('DB_HOST')) {
 
         // Initial setup on page load
         async function initialSetup() {
+            console.log("--- initialSetup started ---"); // Debugging initial setup
             numberOfHouses = parseInt(numHousesInput.value) || 20;
             dailyQuotaPerHouse = parseInt(dailyQuotaInput.value) || 7000;
             totalDailyQuotaStreet = numberOfHouses * dailyQuotaPerHouse;
@@ -929,15 +1046,19 @@ if (!getenv('DB_HOST')) {
             // Display initial condition based on selected scenario or fetched weather
             const initialDisplayCondition = initialSelectedScenario === 'default' ? (lastWeatherData.condition || 'N/A') : solarProfileSelect.options[solarProfileSelect.selectedIndex].text;
 
-
             updateUI(simulatedMinutes, 0, 0, 0, battery, 'Idle', initialReserveLevel, 0, 0, initialDisplayCondition, 'N/A', 0);
             totalDailyQuotaSpan.textContent = `${totalDailyQuotaStreet}`; // Ensure this is set initially
             reserveThresholdDisplaySpan.textContent = `${Math.round(batteryReserveThreshold)}`; // Display reserve threshold initially
+
+            console.log("--- initialSetup finished ---"); // Debugging initial setup
         }
 
         // Call initial setup function on page load
         initialSetup();
+
+        // --- admin_simulation.js code ends here ---
     </script>
+
 </body>
 
 </html>
