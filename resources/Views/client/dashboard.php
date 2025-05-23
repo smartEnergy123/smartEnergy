@@ -4,6 +4,9 @@ if (!isset($_SESSION['user_state'])) {
     header('Location: /smartEnergy/login');
     exit;
 }
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // These values will now be fetched by JavaScript from the API
 // Keeping them here as placeholders for initial render, but JavaScript will overwrite them.

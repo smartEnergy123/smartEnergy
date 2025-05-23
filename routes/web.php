@@ -1,23 +1,23 @@
 <?php
 // routes/web.php
 
-// The autoloader (usually set up in index.php) will handle loading classes
 // like App\Http\Controllers\ApplianceController and App\Models\DB based on PSR-4.
 
-use App\Http\Controllers\ApplianceController; // Assuming ApplianceController handles all these API methods
-
-require_once __DIR__ . '/../vendor/autoload.php';
+use App\Http\Controllers\ApplianceController;
 
 $request = $_SERVER['REQUEST_URI'];
 
-// Clean up the request URI as per your existing logic
-if ($request === '/smartEnergy/') {
-    $request = str_replace('/smartEnergy/', '/', $request);
+// --- CRITICAL CHANGE HERE: Parse the URL to get only the path part ---
+$request_path = parse_url($request, PHP_URL_PATH);
+
+if ($request_path === '/smartEnergy/') {
+    $cleaned_request_path = str_replace('/smartEnergy/', '/', $request_path);
 } else {
-    $request = str_replace('/index.php', '/', $request);
+    $cleaned_request_path = str_replace('/index.php', '/', $request_path);
 }
 
-switch ($request) {
+// Now use $cleaned_request_path in your switch statement
+switch ($cleaned_request_path) {
     // --- Existing Web Routes ---
     case '':
     case '/':
@@ -48,7 +48,7 @@ switch ($request) {
         require dirname(__DIR__) . '/resources/Views/logout.php';
         break;
 
-    // --- API Routes ---
+    // --- API Routes (these cases are now correctly matched against the path without query string) ---
     case '/smartEnergy/api/appliance/toggle':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new ApplianceController();
@@ -59,17 +59,17 @@ switch ($request) {
         }
         exit; // Stop execution after API response
 
-    case '/smartEnergy/api/consumption/current': // Corrected endpoint name
+    case '/smartEnergy/api/consumption/current':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new ApplianceController();
-            $controller->currentConsumption(); // Renamed method for clarity
+            $controller->currentConsumption();
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
         exit;
 
-    case '/smartEnergy/api/simulation/costRate': // Corrected endpoint name
+    case '/smartEnergy/api/simulation/costRate':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $controller = new ApplianceController();
             $controller->getCostRate();
@@ -79,9 +79,9 @@ switch ($request) {
         }
         exit;
 
-    case '/smartEnergy/api/user/dashboard-data': // New route for initial dashboard data
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') { // This should be a GET request
-            $controller = new ApplianceController(); // Or a dedicated UserController
+    case '/smartEnergy/api/user/dashboard-data': // THIS WILL NOW MATCH CORRECTLY!
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $controller = new ApplianceController();
             $controller->dashboardData();
         } else {
             http_response_code(405);
