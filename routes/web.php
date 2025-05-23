@@ -6,6 +6,8 @@
 
 use App\Http\Controllers\ApplianceController; // Assuming ApplianceController handles all these API methods
 
+require_once __DIR__ . '/../vendor/autoload.php';
+
 $request = $_SERVER['REQUEST_URI'];
 
 // Clean up the request URI as per your existing logic
@@ -57,20 +59,30 @@ switch ($request) {
         }
         exit; // Stop execution after API response
 
-    case '/smartEnergy/api/user/log_consumption':
+    case '/smartEnergy/api/consumption/current': // Corrected endpoint name
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $controller = new ApplianceController(); // You could create a separate UserController if desired
-            $controller->logConsumption();
+            $controller = new ApplianceController();
+            $controller->currentConsumption(); // Renamed method for clarity
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
         exit;
 
-    case '/smartEnergy/api/simulation/current_cost_rate':
+    case '/smartEnergy/api/simulation/costRate': // Corrected endpoint name
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $controller = new ApplianceController(); // You could create a separate SimulationController if desired
+            $controller = new ApplianceController();
             $controller->getCostRate();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit;
+
+    case '/smartEnergy/api/user/dashboard-data': // New route for initial dashboard data
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') { // This should be a GET request
+            $controller = new ApplianceController(); // Or a dedicated UserController
+            $controller->dashboardData();
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);

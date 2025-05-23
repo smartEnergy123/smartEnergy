@@ -326,7 +326,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
 
                 // Send state change to the backend via API
                 try {
-                    const response = await fetch('/api/appliance/toggle', {
+                    const response = await fetch('/smartEnergy/api/appliance/toggle', { // Corrected URL
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -370,7 +370,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
 
                 // Send user's current W consumption to the backend periodically or on change.
                 try {
-                    const response = await fetch('/api/consumption/current', {
+                    const response = await fetch('/smartEnergy/api/consumption/current', { // Corrected URL
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -418,7 +418,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
             // Function to fetch the current cost rate from the simulation state (Actual Backend Call)
             async function fetchCurrentCostRate() {
                 try {
-                    const response = await fetch('/api/simulation/costRate'); // Assuming this endpoint exists on your backend
+                    const response = await fetch('/smartEnergy/api/simulation/costRate'); // Corrected URL
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -441,7 +441,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
             // Function to fetch initial user dashboard data (quota, current daily consumption, appliance states)
             async function fetchDashboardData() {
                 try {
-                    const response = await fetch(`/api/user/dashboard-data?userId=${userId}`);
+                    const response = await fetch(`/smartEnergy/api/user/dashboard-data?userId=${userId}`); // Corrected URL
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -488,8 +488,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
             setInterval(updateDailyConsumptionSimulation, 1000); // Simulate daily consumption update every 1 second (e.g., representing 1 simulated minute)
             setInterval(fetchCurrentCostRate, 5000); // Fetch cost rate every 5 seconds (example)
         });
-    </script>
-    <script>
+
         // Keep existing sidebar and user dropdown toggles
         function toggleSidebar() {
             const sidebar = document.getElementById("sidebar");
