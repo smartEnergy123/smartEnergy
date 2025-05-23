@@ -1,26 +1,20 @@
 <?php
 // routes/web.php
 
+// The autoloader (usually set up in index.php) will handle loading classes
 // like App\Http\Controllers\ApplianceController and App\Models\DB based on PSR-4.
 
-use App\Http\Controllers\ApplianceController;
-
-$request = $_SERVER['REQUEST_URI'];
+use App\Http\Controllers\ApplianceController; // Assuming ApplianceController handles all these API methods
 
 // --- CRITICAL CHANGE HERE: Parse the URL to get only the path part ---
-$request_path = parse_url($request, PHP_URL_PATH);
+// This ensures that query strings (like ?userId=...) do not prevent route matching.
+$request_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-if ($request_path === '/smartEnergy/') {
-    $cleaned_request_path = str_replace('/smartEnergy/', '/', $request_path);
-} else {
-    $cleaned_request_path = str_replace('/index.php', '/', $request_path);
-}
 
-// Now use $cleaned_request_path in your switch statement
-switch ($cleaned_request_path) {
+switch ($request_path) {
     // --- Existing Web Routes ---
-    case '':
-    case '/':
+    case '/smartEnergy/': // Matches /smartEnergy/
+    case '/': // Matches root if accessed directly (e.g., http://localhost/)
         require dirname(__DIR__) . '/resources/Views/landing.php';
         break;
     case '/smartEnergy/login':
@@ -48,7 +42,8 @@ switch ($cleaned_request_path) {
         require dirname(__DIR__) . '/resources/Views/logout.php';
         break;
 
-    // --- API Routes (these cases are now correctly matched against the path without query string) ---
+    // --- API Routes ---
+    // These cases will now correctly match the path part of the URL, ignoring query strings.
     case '/smartEnergy/api/appliance/toggle':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new ApplianceController();
@@ -79,7 +74,7 @@ switch ($cleaned_request_path) {
         }
         exit;
 
-    case '/smartEnergy/api/user/dashboard-data': // THIS WILL NOW MATCH CORRECTLY!
+    case '/smartEnergy/api/user/dashboard-data':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $controller = new ApplianceController();
             $controller->dashboardData();
