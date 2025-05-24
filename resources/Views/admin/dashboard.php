@@ -354,7 +354,6 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
             may5_table: may5_profile,
             may1_refined: may1_profile,
             may2_refined: may2_profile,
-            // Add other profiles here if you create them
         };
 
 
