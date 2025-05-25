@@ -459,4 +459,33 @@ class ApplianceController
             $this->sendJsonResponse('error', 'Server error during simulation update: ' . $e->getMessage(), 500);
         }
     }
+
+    // getSimulationState
+    public function getSimulationState()
+    {
+        // Assume simulation_state has an ID of 1 for the main simulation
+        $stmt = $this->db->connection()->prepare("SELECT * FROM simulation_state WHERE id = 1");
+        $stmt->execute();
+        $state = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($state) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'success', 'data' => $state]);
+        } else {
+            // Return default/initial state if no record exists
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'success', 'data' => [
+                'simulated_minutes' => 0,
+                'current_battery_level_wh' => 5000, // Or batteryCapacity / 2
+                'total_grid_import_wh' => 0,
+                'total_co2_emissions' => 0,
+                'battery_status' => 'Idle',
+                'weather_condition' => 'N/A',
+                'current_cost_rate' => 'Standard',
+                'num_houses' => 20,
+                'daily_quota_per_house_wh' => 7000,
+                'total_renewable_available_wh' => 0
+            ]]);
+        }
+    }
 }

@@ -7,6 +7,7 @@ use App\Models\DB;
 use App\Http\Controllers\ApplianceController;
 use Dotenv\Dotenv; // Add Dotenv import
 
+
 // Load environment variables if not already loaded (e.g., for direct script access)
 // This should ideally be handled by your front controller (index.php)
 if (!getenv('DB_NAME')) {
@@ -26,8 +27,6 @@ switch ($request_path) {
         require dirname(__DIR__) . '/resources/Views/landing.php';
         break;
     case '/smartEnergy/login':
-        // The previous version had a direct require, but the updated one handles POST for login.
-        // I will keep the POST handling as it was in the "web-php-updated" Canvas document.
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $input = file_get_contents('php://input');
             $data = json_decode($input, true);
@@ -62,8 +61,6 @@ switch ($request_path) {
         require dirname(__DIR__) . '/resources/Views/processAuth.php';
         break;
     case '/smartEnergy/client/dashboard/':
-        // The dashboard.php in the previous Canvas document already handles session checks.
-
         if (!isset($_SESSION['user_state'])) {
             header('Location: /smartEnergy/login');
             exit;
@@ -71,8 +68,6 @@ switch ($request_path) {
         require dirname(__DIR__) . '/resources/Views/client/dashboard.php';
         break;
     case '/smartEnergy/admin/dashboard/':
-        // The dashboard.php in the previous Canvas document already handles session checks.
-
         if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
             header('Location: /smartEnergy/login');
             exit;
@@ -80,9 +75,6 @@ switch ($request_path) {
         require dirname(__DIR__) . '/resources/Views/admin/dashboard.php';
         break;
     case '/smartEnergy/admin/viewPowerStats':
-        // This route was not in the previous web.php you provided but was in the Canvas document.
-        // I'll keep it as it was in the Canvas document.
-
         if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
             header('Location: /smartEnergy/login');
             exit;
@@ -90,16 +82,13 @@ switch ($request_path) {
         require dirname(__DIR__) . '/resources/Views/admin/viewPowerStats.php'; // Assuming this is the correct path
         break;
     case '/smartEnergy/admin/simulateWeather':
-        // This route was in the previous web.php you provided.
         require dirname(__DIR__) . '/resources/Views/admin/simulateWeather.php';
         break;
     case '/smartEnergy/logout':
-        // This route was in the previous web.php you provided.
         header('Location: /smartEnergy/login');
         exit;
 
         // --- API Routes ---
-        // These cases will now correctly match the path part of the URL, ignoring query strings.
     case '/smartEnergy/api/appliance/toggle':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new ApplianceController();
@@ -108,7 +97,7 @@ switch ($request_path) {
             http_response_code(405); // Method Not Allowed
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
-        exit; // Stop execution after API response
+        exit;
 
     case '/smartEnergy/api/consumption/current':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -141,7 +130,6 @@ switch ($request_path) {
         exit;
 
         // --- NEW ADMIN API ROUTES ---
-        // These routes will allow the admin dashboard to send configuration data to the backend.
     case '/smartEnergy/api/admin/set-simulation-config':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new ApplianceController(); // Or a dedicated AdminController
@@ -171,6 +159,17 @@ switch ($request_path) {
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
         exit;
+
+        // --- NEW ROUTE TO FETCH LAST SIMULATION STATE ---
+    case '/smartEnergy/api/simulation/get-state':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $controller = new ApplianceController();
+            $controller->getSimulationState(); // This is the new method we need to implement
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit; // Important: stop execution after API response
 
         // --- NEW ROUTE FOR AUTOMATIC SIMULATION DATA UPDATES ---
     case '/smartEnergy/api/simulation/update-data':

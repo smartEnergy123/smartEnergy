@@ -174,10 +174,9 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                         <p>Total Consumption (Street): <span id="consumption">0</span> Wh</p>
                         <p>Active Users Consuming: <span id="activeUsersCount">0</span></p>
                         <p>Total Daily Quota (Street): <span id="totalDailyQuota">0</span> Wh</p>
-                        <p>CO2 Emissions (Total): <span id="totalCO2Emissions" class="font-semibold text-green-600">0</span> kg</p>
+                        <p>CO2 Emissions (Today): <span id="co2EmissionsToday" class="font-semibold text-green-600">0</span> kg</p>
                         <p>Condition: <span id="weatherCondition">N/A</span></p>
                         <p>Current Energy Cost Rate: <span id="costRate" class="font-semibold">Standard</span></p>
-                        <p>Simulated Minutes: <span id="simulatedMinutes">0</span> min</p>
                     </div>
                 </div>
 
@@ -188,7 +187,6 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                         <p>Status: <span id="batteryStatus" class="font-semibold">Idle</span></p>
                         <p>Reserve Level: <span id="reserveBatteryLevel">0</span> Wh</p>
                         <p>Reserve Threshold: <span id="reserveThresholdDisplay">0</span> Wh</p>
-                        <p>Current Battery Level: <span id="currentBatteryLevel">0</span> Wh</p>
                     </div>
                 </div>
 
@@ -196,7 +194,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                     <h2 class="text-xl font-bold mb-4">Grid Connection</h2>
                     <div class="space-y-2">
                         <p>Status: <span id="gridStatus" class="font-semibold">Offline</span></p>
-                        <p>Energy Imported (Total): <span id="totalGridImport">0</span> Wh</p>
+                        <p>Energy Imported (Today): <span id="gridImportToday">0</span> Wh</p>
                     </div>
                 </div>
             </div>
@@ -217,7 +215,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
         // Corrected simulation speed: 1 simulated minute = 1 real second (1 simulated hour = 1 real minute)
         const SIMULATION_INTERVAL_MS = 1000; // Real-world milliseconds per simulation step (1 second)
         const SIMULATION_TIME_INCREMENT_MINUTES = 1; // Simulated minutes advanced per simulation step (1 minute)
-        const AUTO_UPDATE_INTERVAL_MS = 5000; // Interval for automatic updates (5 seconds)
+        const AUTO_UPDATE_INTERVAL_MS = 10; // Interval for automatic updates (5 seconds)
 
 
         // Pricing Tiers (Cost per Wh - example values)
@@ -474,9 +472,8 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
         // batteryMinDischarge is already a const defined globally, no need to redefine here
         // const batteryMinDischarge = 0; // Minimum operational level (0 Wh)
 
-        let intervalId = null; // For the minute-by-minute simulation
-        let autoUpdateIntervalId = null; // For the 5-second auto-update
-
+        let intervalId = null;
+        let autoSyncIntervalId = null; // Declare autoSyncIntervalId here
         let simulatedMinutes = 0; // Track simulated time in minutes (0 to 1440)
 
         let totalGridImportToday = 0; // Wh
@@ -519,11 +516,10 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
         const batteryStatusSpan = document.getElementById("batteryStatus");
         const reserveBatteryLevelSpan = document.getElementById("reserveBatteryLevel");
         const reserveThresholdDisplaySpan = document.getElementById("reserveThresholdDisplay");
-        const currentBatteryLevelSpan = document.getElementById("currentBatteryLevel"); // NEW: For current battery level from DB
 
         // Grid related spans
         const gridStatusSpan = document.getElementById("gridStatus");
-        const totalGridImportSpan = document.getElementById("totalGridImport"); // NEW: For total grid import from DB
+        const gridImportTodaySpan = document.getElementById("gridImportToday");
 
         // Other stats spans
         const solarOutputSpan = document.getElementById("solarOutput");
@@ -531,7 +527,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
         const renewableAvailableSpan = document.getElementById("renewableAvailable");
         const consumptionOutputSpan = document.getElementById("consumption");
         const totalDailyQuotaSpan = document.getElementById("totalDailyQuota");
-        const totalCO2EmissionsSpan = document.getElementById("totalCO2Emissions"); // NEW: For total CO2 emissions from DB
+        const co2EmissionsTodaySpan = document.getElementById("co2EmissionsToday");
         const weatherConditionSpan = document.getElementById("weatherCondition");
         const costRateSpan = document.getElementById("costRate");
 
@@ -541,12 +537,11 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
         const windProfileSelect = document.getElementById("windProfile"); // Wind profile select
         const numHousesInput = document.getElementById("numHouses");
         const dailyQuotaInput = document.getElementById("dailyQuota");
-        const costRateInput = document.getElementById("costRateInput"); // NEW: Cost Rate Input element
+        const costRateInput = document.getElementById("costRateInput"); // NEW: Cost Rate Input
 
         // *** NEW DOM Elements for Panel Display ***
         const panelSimulatedTimeSpan = document.getElementById("panelSimulatedTime");
         const panelTiltAngleSpan = document.getElementById("panelTiltAngle");
-        const simulatedMinutesSpan = document.getElementById("simulatedMinutes"); // NEW: For simulated minutes from DB
 
 
         // Get the current active users
@@ -597,7 +592,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                 // Morning: tilt from minAngle (at sunrise) to 0 degrees (at solar noon)
                 const progress = (minutes - sunRiseMinutes) / (solarNoonMinutes - sunRiseMinutes);
                 return minAngle + (0 - minAngle) * progress; // Linear interpolation
-            } else { // minutes >= solarNooonMinutes
+            } else { // minutes >= solarNoonMinutes
                 // Afternoon: tilt from 0 degrees (at solar noon) to maxAngle (at sunset)
                 const progress = (minutes - solarNoonMinutes) / (sunSetMinutes - solarNoonMinutes);
                 return 0 + (maxAngle - 0) * progress; // Linear interpolation
@@ -605,24 +600,24 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
         }
 
 
-        function updateUI(simTime, solar, wind, consumption, batteryLevelValue, batteryStatusText, reserveBatteryLevelValue, gridImport, co2Emissions, condition, costRateText, renewableAvailable, totalGridImportDB, totalCO2EmissionsDB, currentBatteryLevelDB, simulatedMinutesDB) {
+        function updateUI(simTime, solar, wind, consumption, batteryLevelValue, batteryStatusText, reserveBatteryLevelValue, gridImport, co2Emissions, condition, costRateText, renewableAvailable) {
             const hours = Math.floor(simTime / 60);
             const minutes = simTime % 60;
             const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 
-            // Update general simulated time display (from local JS simulation)
+            // Update general simulated time display
             simulatedTimeSpan.textContent = formattedTime;
 
-            // Battery related updates (from local JS simulation)
+            // Battery related updates
             batteryLevelSpan.textContent = `${Math.round(batteryLevelValue)} / ${batteryCapacity}`; // Round battery display
             batteryStatusSpan.textContent = batteryStatusText; // Update battery status
             reserveBatteryLevelSpan.textContent = `${Math.round(reserveBatteryLevelValue)}`; // Update reserve battery level
             reserveThresholdDisplaySpan.textContent = `${Math.round(batteryReserveThreshold)}`; // Display reserve threshold
 
-            // Grid related updates (from local JS simulation)
+            // Grid related updates
             gridStatusSpan.textContent = gridImport > 0 ? 'Importing' : 'Offline';
             gridStatusSpan.className = gridImport > 0 ? 'font-semibold text-red-600' : 'font-semibold text-green-600'; // Color based on status
-            // gridImportTodaySpan.textContent = `${Math.round(gridImport)}`; // This is local, now use DB value below
+            gridImportTodaySpan.textContent = `${Math.round(gridImport)}`; // Update energy imported from grid
 
 
             solarOutputSpan.textContent = `${Math.round(solar)}`;
@@ -630,8 +625,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
             renewableAvailableSpan.textContent = `${Math.round(renewableAvailable)}`;
             consumptionOutputSpan.textContent = `${Math.round(consumption)}`;
             totalDailyQuotaSpan.textContent = `${totalDailyQuotaStreet}`;
-            // co2EmissionsTodaySpan.textContent = `${co2Emissions.toFixed(2)}`; // This is local, now use DB value below
-            weatherConditionSpan.textContent = condition; // This shows the live API condition or selected scenario
+            co2EmissionsTodaySpan.textContent = `${co2Emissions.toFixed(2)}`; // Show CO2 with 2 decimal places
             costRateSpan.textContent = costRateText;
             // Color the cost rate text
             if (costRateText === 'Low') costRateSpan.className = 'font-semibold text-green-600';
@@ -665,12 +659,6 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                 panelSimulatedTimeSpan.textContent = formattedTime; // Display time below panel too
                 panelTiltAngleSpan.textContent = `${tiltAngle.toFixed(1)}`; // Display angle, rounded to 1 decimal place
             }
-
-            // NEW: Update values from the database (simulated_state)
-            totalGridImportSpan.textContent = `${Math.round(totalGridImportDB)} Wh`;
-            totalCO2EmissionsSpan.textContent = `${totalCO2EmissionsDB.toFixed(2)} kg`;
-            currentBatteryLevelSpan.textContent = `${Math.round(currentBatteryLevelDB)} Wh`;
-            simulatedMinutesSpan.textContent = `${simulatedMinutesDB} min`;
         }
 
         // NEW: Function to fetch admin configuration from the backend
@@ -777,71 +765,51 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
             }
         }
 
-        // NEW: Function to fetch and update simulation data from the backend (every 5 seconds)
-        async function updateSimulationDisplay() {
+        // NEW FUNCTION: Syncs the current local simulation state to the database
+        async function syncSimulationStateToBackend() {
             try {
+                const dataToSend = {
+                    simulated_minutes: simulatedMinutes,
+                    solar_output_wh: currentSolarOutputWh,
+                    wind_output_wh: currentWindOutputWh,
+                    total_consumption_wh: currentConsumptionWh,
+                    current_battery_level_wh: battery,
+                    total_grid_import_wh: totalGridImportToday, // This is the accumulated local value
+                    total_co2_emissions: totalCO2EmissionsToday, // This is the accumulated local value
+                    battery_status: batteryStatus, // Use the local batteryStatus variable
+                    weather_condition: lastWeatherData.condition,
+                    current_cost_rate: costRateInput.value,
+                    num_houses: numberOfHouses,
+                    daily_quota_per_house_wh: dailyQuotaPerHouse,
+                    total_renewable_available_wh: currentRenewableAvailableWh
+                };
+
+                console.log("SYNC TO BACKEND: Preparing to send data:", dataToSend); // DEBUG LOG
+
                 const response = await fetch('/smartEnergy/api/simulation/update-data', {
-                    method: 'POST', // Make sure to specify POST as per backend route
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({}) // Send an empty object if no specific data is needed
+                    body: JSON.stringify(dataToSend)
                 });
+
+                console.log("SYNC TO BACKEND: Response received. Status:", response.status); // DEBUG LOG
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error(`Failed to fetch simulation data: HTTP error! status: ${response.status}, message: ${errorText.substring(0, 200)}...`);
+                    console.error(`SYNC TO BACKEND: Failed to update simulation data: HTTP error! status: ${response.status}, raw message: ${errorText.substring(0, 500)}...`); // Log raw error
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
-                console.log("SIMULATION DATA FROM DB:", data); // Log data received from DB
-
                 if (data.status === 'success') {
-                    // Update UI elements with data from the database
-                    // Note: 'simulatedMinutes' is now coming from the DB
-                    const hours = Math.floor(data.simulated_minutes / 60);
-                    const minutes = data.simulated_minutes % 60;
-                    const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-
-                    // Update local variables based on DB values if simulation is running
-                    // This keeps the local simulation in sync with the DB state
-                    simulatedMinutes = data.simulated_minutes;
-                    totalGridImportToday = data.total_grid_import_wh;
-                    totalCO2EmissionsToday = data.total_co2_emissions;
-                    battery = data.current_battery_level_wh; // Update local battery with DB value
-
-                    // Update UI using the `updateUI` function, passing DB values where appropriate
-                    updateUI(
-                        simulatedMinutes, // From DB
-                        data.solar_output_wh || 0, // Assuming backend might return these, or default to 0
-                        data.wind_output_wh || 0, // Assuming backend might return these, or default to 0
-                        data.total_consumption_wh || 0, // Assuming backend might return these, or default to 0
-                        battery, // From DB
-                        data.battery_status || 'Idle', // Assuming backend might return this
-                        Math.max(0, battery - batteryReserveThreshold), // Calculated from DB battery level
-                        totalGridImportToday, // From DB
-                        totalCO2EmissionsToday, // From DB
-                        data.weather_condition || lastWeatherData.condition, // From DB or local weather
-                        data.current_cost_rate, // From DB
-                        data.renewable_available_wh || 0, // Assuming backend might return these, or default to 0
-                        data.total_grid_import_wh, // Explicitly pass DB value for grid import
-                        data.total_co2_emissions, // Explicitly pass DB value for CO2
-                        data.current_battery_level_wh, // Explicitly pass DB value for battery
-                        data.simulated_minutes // Explicitly pass DB value for simulated minutes
-                    );
-
-                    // Update local variables for numHouses and dailyQuota if they were changed by admin
-                    numberOfHouses = data.num_houses;
-                    dailyQuotaPerHouse = data.daily_quota_per_house_wh;
-                    totalDailyQuotaStreet = numberOfHouses * dailyQuotaPerHouse;
-                    totalDailyQuotaSpan.textContent = `${totalDailyQuotaStreet}`; // Update display
-
+                    console.log("SYNC TO BACKEND: Simulation data updated successfully on backend. Backend response:", data); // DEBUG LOG
                 } else {
-                    console.error("Error updating simulation data from backend:", data.message);
+                    console.error("SYNC TO BACKEND: Error updating simulation data on backend. Backend message:", data.message); // DEBUG LOG
                 }
             } catch (error) {
-                console.error("Failed to update simulation display:", error);
+                console.error("SYNC TO BACKEND: Failed to send simulation state to backend:", error); // DEBUG LOG
             }
         }
 
@@ -853,10 +821,10 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
             if (intervalId) {
                 // Stop simulation
                 console.log("Stopping simulation.");
-                clearInterval(intervalId); // Stop minute-by-minute simulation
-                clearInterval(autoUpdateIntervalId); // Stop 5-second auto-update
+                clearInterval(intervalId);
+                clearInterval(autoSyncIntervalId); // Stop the auto-sync interval
                 intervalId = null;
-                autoUpdateIntervalId = null;
+                autoSyncIntervalId = null; // Clear the interval ID
                 simButton.textContent = "Start Simulation";
                 turbine.style.animation = "none"; // Stop wind animation when simulation stops
                 bolt.style.display = 'none'; // Hide bolt when simulation stops
@@ -874,6 +842,13 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                 simulatedMinutes = 0; // Reset time to the start of the day
                 totalGridImportToday = 0; // Reset daily grid import
                 totalCO2EmissionsToday = 0; // Reset daily CO2 emissions
+                currentSolarOutputWh = 0; // Reset for a clean start
+                currentWindOutputWh = 0;
+                currentConsumptionWh = 0;
+                let renewableEnergyUsedDirectlyWh = 0; // Initialize here
+                currentRenewableAvailableWh = 0;
+                batteryStatus = 'Idle'; // Reset status
+
 
                 // Get current values from inputs
                 numberOfHouses = parseInt(numHousesInput.value) || 20;
@@ -882,7 +857,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
 
                 totalDailyQuotaStreet = numberOfHouses * dailyQuotaPerHouse; // Calculate total quota
 
-                // NEW: Send current admin config to backend (numHouses, dailyQuota, costRate)
+                // NEW: Send current admin config to backend
                 await sendAdminConfigToBackend(numberOfHouses, dailyQuotaPerHouse, selectedCostRate);
 
                 // Set initial battery level based on the selected scenario
@@ -923,8 +898,8 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                 // Initial UI update - pass 'N/A' or fetched condition for display
                 const initialDisplayCondition = selectedScenario === 'default' ? (lastWeatherData.condition || 'N/A') : lastWeatherData.condition;
 
-                // Initial updateUI call with default/initial values, before first DB fetch
-                updateUI(simulatedMinutes, 0, 0, 0, battery, batteryStatus, initialReserveLevel, 0, 0, initialDisplayCondition, 'Starting...', 0, 0, 0, battery, simulatedMinutes);
+
+                updateUI(simulatedMinutes, 0, 0, 0, battery, batteryStatus, initialReserveLevel, 0, 0, initialDisplayCondition, selectedCostRate, 0);
 
 
                 // *** This is the setInterval call that runs the simulation steps ***
@@ -1067,7 +1042,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                             // Any remaining energyToSupplyWh after battery discharge must come from the grid
                             energyFromGridWh = energyToSupplyWh; // Assign remaining deficit to grid import
                         }
-                    } else {
+                    } else { // This is the 'else' that was orphaned
                         // energyBalanceWh is 0 - generation equals consumption
                         batteryStatus = 'Idle';
                         energyFromGridWh = 0; // Ensure grid import is 0 when balanced
@@ -1085,7 +1060,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                     const currentReserveBatteryLevelWh = Math.max(0, battery - batteryReserveThreshold);
 
 
-                    const currentRenewableAvailableWh = renewableEnergyUsedDirectlyWh + energyFromBatteryWh; // Energy supplied by renewables or battery discharge
+                    currentRenewableAvailableWh = renewableEnergyUsedDirectlyWh + energyFromBatteryWh; // Energy supplied by renewables or battery discharge
 
                     // Accumulate total grid import for the day
                     totalGridImportToday += energyFromGridWh;
@@ -1109,8 +1084,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                     // When not in Default mode, display the selected scenario in the 'Condition' span
                     const displayCondition = currentScenarioInLoop === 'default' ? (lastWeatherData.condition || 'N/A') : lastWeatherData.condition;
                     // Pass the calculated energyFromGridWh to updateUI
-                    // Note: The updateUI here is for the local simulation values, DB values are updated by updateSimulationDisplay
-                    updateUI(simulatedMinutes, currentSolarOutputWh, currentWindOutputWh, currentConsumptionWh, battery, batteryStatus, currentReserveBatteryLevelWh, totalGridImportToday, totalCO2EmissionsToday, displayCondition, costRateText, currentRenewableAvailableWh, 0, 0, 0, 0); // Pass 0 for DB values here, as they are handled by updateSimulationDisplay
+                    updateUI(simulatedMinutes, currentSolarOutputWh, currentWindOutputWh, currentConsumptionWh, battery, batteryStatus, currentReserveBatteryLevelWh, totalGridImportToday, totalCO2EmissionsToday, displayCondition, costRateText, currentRenewableAvailableWh);
 
 
                     // --- Advance Simulated Time ---
@@ -1154,9 +1128,8 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
 
                 }, SIMULATION_INTERVAL_MS); // Update based on simulation interval
 
-                // Start the 5-second auto-update for simulation data from DB
-                autoUpdateIntervalId = setInterval(updateSimulationDisplay, AUTO_UPDATE_INTERVAL_MS);
-                updateSimulationDisplay(); // Call immediately to get initial DB state
+                // Start the 5-second auto-sync for simulation data to DB
+                autoSyncIntervalId = setInterval(syncSimulationStateToBackend, AUTO_UPDATE_INTERVAL_MS);
             }
         }
 
@@ -1259,15 +1232,9 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
             // Display initial condition based on selected scenario or fetched weather
             const initialDisplayCondition = initialSelectedScenario === 'default' ? (lastWeatherData.condition || 'N/A') : solarProfileSelect.options[solarProfileSelect.selectedIndex].text;
 
-            // Initial UI update with defaults/fetched config, before any simulation starts
-            updateUI(simulatedMinutes, 0, 0, 0, battery, 'Idle', initialReserveLevel, 0, 0, initialDisplayCondition, costRateInput.value, 0, 0, 0, battery, simulatedMinutes);
+            updateUI(simulatedMinutes, 0, 0, 0, battery, 'Idle', initialReserveLevel, 0, 0, initialDisplayCondition, costRateInput.value, 0); // Use costRateInput.value for initial display
             totalDailyQuotaSpan.textContent = `${totalDailyQuotaStreet}`; // Ensure this is set initially
             reserveThresholdDisplaySpan.textContent = `${Math.round(batteryReserveThreshold)}`; // Display reserve threshold initially
-
-            // Start the 5-second auto-update for simulation data from DB immediately on initial setup
-            // This ensures the admin panel always shows the latest state from the database.
-            autoUpdateIntervalId = setInterval(updateSimulationDisplay, AUTO_UPDATE_INTERVAL_MS);
-            updateSimulationDisplay(); // Call immediately to get initial DB state
 
             console.log("--- initialSetup finished ---"); // Debugging initial setup
         }
