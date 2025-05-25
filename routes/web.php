@@ -10,6 +10,11 @@ use App\Http\Controllers\ApplianceController; // Assuming ApplianceController ha
 // This ensures that query strings (like ?userId=...) do not prevent route matching.
 $request_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
+// Optional: If your application is located in a subfolder (e.g., /smartEnergy/)
+// and your cases are defined relative to the root (e.g., /api/...),
+// you might need to strip the base path.
+// However, since your current cases already include '/smartEnergy/',
+// we will match against the full $request_path directly.
 
 switch ($request_path) {
     // --- Existing Web Routes ---
@@ -78,6 +83,28 @@ switch ($request_path) {
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $controller = new ApplianceController();
             $controller->dashboardData();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit;
+
+        // --- NEW ADMIN API ROUTES ---
+        // These routes will allow the admin dashboard to send configuration data to the backend.
+    case '/smartEnergy/api/admin/set-simulation-config':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new ApplianceController(); // Or a dedicated AdminController
+            $controller->setSimulationConfig();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit;
+
+    case '/smartEnergy/api/admin/set-cost-rate': // Explicit route for setting cost rate
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new ApplianceController();
+            $controller->setCostRate();
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);

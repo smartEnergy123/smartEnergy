@@ -217,4 +217,81 @@ class ApplianceController
             $this->sendJsonResponse('error', 'Failed to fetch dashboard data.', 500);
         }
     }
+
+    /**
+     * Handles setting simulation configuration parameters from the admin dashboard.
+     * Expects POST request with numHouses and dailyQuota.
+     */
+    public function setSimulationConfig()
+    {
+        $input = file_get_contents('php://input');
+        $data = json_decode($input, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['numHouses'], $data['dailyQuota'])) {
+            $this->sendJsonResponse('error', 'Invalid or missing simulation configuration data.', 400);
+        }
+
+        $numHouses = (int)$data['numHouses'];
+        $dailyQuotaPerHouse = (int)$data['dailyQuota'];
+
+        try {
+            // You'll need a table to store these global simulation configurations.
+            // Let's assume a table named 'simulation_config' with columns:
+            // id (PK, INT), num_houses (INT), daily_quota_per_house_wh (INT), last_updated_at (DATETIME)
+            // We'll use id = 1 for the main configuration.
+            $query = "
+                INSERT INTO simulation_config (id, num_houses, daily_quota_per_house_wh, last_updated_at)
+                VALUES (1, :numHouses, :dailyQuota, NOW())
+                ON DUPLICATE KEY UPDATE
+                    num_houses = VALUES(num_houses),
+                    daily_quota_per_house_wh = VALUES(daily_quota_per_house_wh),
+                    last_updated_at = NOW()
+            ";
+            $params = [
+                ':numHouses' => $numHouses,
+                ':dailyQuota' => $dailyQuotaPerHouse
+            ];
+            $this->db->execute($query, $params);
+
+            $this->sendJsonResponse('success', 'Simulation configuration updated.');
+        } catch (PDOException $e) {
+            error_log('Set simulation config database error: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Database operation failed.', 500);
+        }
+    }
+
+    /**
+     * Handles setting the global energy cost rate from the admin dashboard.
+     * Expects POST request with costRate.
+     */
+    public function setCostRate()
+    {
+        $input = file_get_contents('php://input');
+        $data = json_decode($input, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['costRate'])) {
+            $this->sendJsonResponse('error', 'Invalid or missing cost rate data.', 400);
+        }
+
+        $newCostRate = $data['costRate'];
+
+        try {
+            // Update the `simulation_state` table's `current_cost_rate`
+            // We assume id = 1 is the primary row for global simulation state.
+            $query = "
+                INSERT INTO simulation_state (id, current_cost_rate, last_updated_at)
+                VALUES (1, :costRate, NOW())
+                ON DUPLICATE KEY UPDATE
+                    current_cost_rate = VALUES(current_cost_rate),
+                    last_updated_at = NOW()
+            ";
+            $params = [':costRate' => $newCostRate];
+            $this->db->execute($query, $params);
+
+            $this->sendJsonResponse('success', 'Cost rate updated successfully.');
+        } catch (PDOException $e) {
+            error_log('Set cost rate database error: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Database operation failed.', 500);
+        }
+    }
 }
