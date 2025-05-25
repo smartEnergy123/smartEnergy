@@ -10,12 +10,6 @@ use App\Http\Controllers\ApplianceController; // Assuming ApplianceController ha
 // This ensures that query strings (like ?userId=...) do not prevent route matching.
 $request_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-// Optional: If your application is located in a subfolder (e.g., /smartEnergy/)
-// and your cases are defined relative to the root (e.g., /api/...),
-// you might need to strip the base path.
-// However, since your current cases already include '/smartEnergy/',
-// we will match against the full $request_path directly.
-
 switch ($request_path) {
     // --- Existing Web Routes ---
     case '/smartEnergy/': // Matches /smartEnergy/
@@ -105,6 +99,16 @@ switch ($request_path) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new ApplianceController();
             $controller->setCostRate();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit;
+
+    case '/smartEnergy/api/admin/get-simulation-config': // NEW: Route to fetch admin config
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $controller = new ApplianceController();
+            $controller->getSimulationConfig(); // New method to implement
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);

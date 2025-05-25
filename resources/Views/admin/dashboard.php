@@ -117,6 +117,14 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                         <label for="dailyQuota" class="block text-sm font-medium text-gray-700">Daily Quota Per House (Wh):</label>
                         <input type="number" id="dailyQuota" value="7000" min="1000" step="1000" class="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                     </div>
+                    <div class="md:col-span-2">
+                        <label for="costRateInput" class="block text-sm font-medium text-gray-700">Set Current Energy Cost Rate:</label>
+                        <select id="costRateInput" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                            <option value="Low">Low</option>
+                            <option value="Standard" selected>Standard</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -526,6 +534,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
         const windProfileSelect = document.getElementById("windProfile"); // Wind profile select
         const numHousesInput = document.getElementById("numHouses");
         const dailyQuotaInput = document.getElementById("dailyQuota");
+        const costRateInput = document.getElementById("costRateInput"); // NEW: Cost Rate Input
 
         // *** NEW DOM Elements for Panel Display ***
         const panelSimulatedTimeSpan = document.getElementById("panelSimulatedTime");
@@ -614,7 +623,6 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
             consumptionOutputSpan.textContent = `${Math.round(consumption)}`;
             totalDailyQuotaSpan.textContent = `${totalDailyQuotaStreet}`;
             co2EmissionsTodaySpan.textContent = `${co2Emissions.toFixed(2)}`; // Show CO2 with 2 decimal places
-            weatherConditionSpan.textContent = condition; // This shows the live API condition or selected scenario
             costRateSpan.textContent = costRateText;
             // Color the cost rate text
             if (costRateText === 'Low') costRateSpan.className = 'font-semibold text-green-600';
@@ -650,6 +658,84 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
             }
         }
 
+        // NEW: Function to fetch admin configuration from the backend
+        async function fetchAdminConfig() {
+            try {
+                const response = await fetch('/smartEnergy/api/admin/get-simulation-config'); // New GET endpoint
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                console.log("Fetched admin config:", data);
+
+                // Populate input fields with fetched data
+                numHousesInput.value = data.numHouses || 20;
+                dailyQuotaInput.value = data.dailyQuotaPerHouse || 7000;
+                costRateInput.value = data.costRate || 'Standard'; // Set dropdown value
+
+                // Update local variables based on fetched data
+                numberOfHouses = parseInt(numHousesInput.value);
+                dailyQuotaPerHouse = parseInt(dailyQuotaInput.value);
+                totalDailyQuotaStreet = numberOfHouses * dailyQuotaPerHouse;
+                totalDailyQuotaSpan.textContent = `${totalDailyQuotaStreet}`; // Update display
+                currentCostRate = PRICE_RATE[costRateInput.value.toUpperCase()] || PRICE_RATE.STANDARD; // Update local cost rate
+                costRateSpan.textContent = costRateInput.value; // Update display
+                // Apply color based on the rate
+                if (costRateInput.value === 'Low') costRateSpan.className = 'font-semibold text-green-600';
+                else if (costRateInput.value === 'High') costRateSpan.className = 'font-semibold text-red-600';
+                else costRateSpan.className = 'font-semibold text-yellow-600'; // Standard
+
+
+            } catch (error) {
+                console.error("Failed to fetch admin config:", error);
+                // Keep default values if fetch fails
+            }
+        }
+
+        // NEW: Function to send admin configuration to the backend
+        async function sendAdminConfigToBackend(numHouses, dailyQuota, costRate) {
+            try {
+                // Send numHouses and dailyQuota
+                const simConfigResponse = await fetch('/smartEnergy/api/admin/set-simulation-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        numHouses: numHouses,
+                        dailyQuota: dailyQuota
+                    })
+                });
+
+                if (!simConfigResponse.ok) {
+                    console.error(`Failed to set simulation config. Status: ${simConfigResponse.status}`);
+                } else {
+                    console.log("Simulation config sent successfully.");
+                }
+
+                // Send costRate
+                const costRateResponse = await fetch('/smartEnergy/api/admin/set-cost-rate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        costRate: costRate
+                    })
+                });
+
+                if (!costRateResponse.ok) {
+                    console.error(`Failed to set cost rate. Status: ${costRateResponse.status}`);
+                } else {
+                    console.log("Cost rate sent successfully.");
+                }
+
+            } catch (error) {
+                console.error("Error sending admin config to backend:", error);
+            }
+        }
+
+
         async function toggleSimulation() {
             console.log("Simulation button clicked. Toggling simulation..."); // Added console log
             const selectedScenario = solarProfileSelect.value; // Get selected scenario here
@@ -677,6 +763,16 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                 totalGridImportToday = 0; // Reset daily grid import
                 totalCO2EmissionsToday = 0; // Reset daily CO2 emissions
 
+                // Get current values from inputs
+                numberOfHouses = parseInt(numHousesInput.value) || 20;
+                dailyQuotaPerHouse = parseInt(dailyQuotaInput.value) || 7000;
+                const selectedCostRate = costRateInput.value; // Get selected cost rate from input
+
+                totalDailyQuotaStreet = numberOfHouses * dailyQuotaPerHouse; // Calculate total quota
+
+                // NEW: Send current admin config to backend
+                await sendAdminConfigToBackend(numberOfHouses, dailyQuotaPerHouse, selectedCostRate);
+
                 // Set initial battery level based on the selected scenario
                 if (selectedScenario === 'good_day') {
                     battery = batteryCapacity; // Start at full capacity for Good Day
@@ -685,10 +781,6 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                     battery = batteryCapacity / 2; // Start at half capacity for other scenarios
                     console.log("Starting simulation with battery half charged.");
                 }
-
-                numberOfHouses = parseInt(numHousesInput.value) || 20; // Get num houses from input
-                dailyQuotaPerHouse = parseInt(dailyQuotaInput.value) || 7000; // Get quota per house from input
-                totalDailyQuotaStreet = numberOfHouses * dailyQuotaPerHouse; // Calculate total quota
 
                 // Fetch initial weather data if the Default scenario is selected
                 if (selectedScenario === 'default') {
@@ -720,7 +812,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                 const initialDisplayCondition = selectedScenario === 'default' ? (lastWeatherData.condition || 'N/A') : lastWeatherData.condition;
 
 
-                updateUI(simulatedMinutes, 0, 0, 0, battery, batteryStatus, initialReserveLevel, 0, 0, initialDisplayCondition, 'Starting...', 0);
+                updateUI(simulatedMinutes, 0, 0, 0, battery, batteryStatus, initialReserveLevel, 0, 0, initialDisplayCondition, selectedCostRate, 0);
 
 
                 // *** This is the setInterval call that runs the simulation steps ***
@@ -863,7 +955,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
                             // Any remaining energyToSupplyWh after battery discharge must come from the grid
                             energyFromGridWh = energyToSupplyWh; // Assign remaining deficit to grid import
                         }
-                    } else {
+                    } else { // This is the 'else' that was orphaned
                         // energyBalanceWh is 0 - generation equals consumption
                         batteryStatus = 'Idle';
                         energyFromGridWh = 0; // Ensure grid import is 0 when balanced
@@ -895,21 +987,10 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
 
 
                     // --- Dynamic Pricing Calculation ---
-                    // Base rate on the proportion of consumption met by renewables + battery and total available renewable generation
-                    const renewableContributionRatio = currentConsumptionWh > 0 ? currentRenewableAvailableWh / currentConsumptionWh : 1; // Assume 100% if no consumption
-
-                    // Adjust pricing based on renewable contribution, generation, and battery *above reserve*
-                    const batteryAboveReserve = Math.max(0, battery - batteryReserveThreshold);
-
-                    if (renewableContributionRatio >= 0.8 && totalGenerationWh > currentConsumptionWh * 0.5 && batteryAboveReserve > batteryCapacity * 0.1) { // High renewable contribution, significant generation, decent battery *above reserve*
-                        currentCostRate = PRICE_RATE.LOW;
-                    } else if (renewableContributionRatio >= 0.4 || batteryAboveReserve > 0) { // Moderate renewable contribution or *some* battery above reserve
-                        currentCostRate = PRICE_RATE.STANDARD;
-                    } else { // Low renewable contribution and no usable battery (in daily portion) -> Relying heavily on grid
-                        currentCostRate = PRICE_RATE.HIGH;
-                    }
-
-                    let costRateText = Object.keys(PRICE_RATE).find(key => PRICE_RATE[key] === currentCostRate);
+                    // The cost rate is now primarily set by the admin input, but we can still
+                    // use this logic for display if needed or for future dynamic adjustments.
+                    // For now, `currentCostRate` is simply the value from the input field.
+                    let costRateText = costRateInput.value; // Get the currently selected text from the dropdown
 
 
                     // --- Update UI ---
@@ -1003,6 +1084,16 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
             weatherConditionSpan.textContent = lastWeatherData.condition; // Use the updated condition
         });
 
+        // NEW: Event listener for costRateInput change to update local variable and display
+        costRateInput.addEventListener("change", () => {
+            currentCostRate = PRICE_RATE[costRateInput.value.toUpperCase()] || PRICE_RATE.STANDARD;
+            costRateSpan.textContent = costRateInput.value;
+            // Apply color based on the rate
+            if (costRateInput.value === 'Low') costRateSpan.className = 'font-semibold text-green-600';
+            else if (costRateInput.value === 'High') costRateSpan.className = 'font-semibold text-red-600';
+            else costRateSpan.className = 'font-semibold text-yellow-600'; // Standard
+        });
+
 
         // --- Sidebar Toggle (Keep existing) ---
         function toggleSidebar() {
@@ -1013,9 +1104,15 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
         // Initial setup on page load
         async function initialSetup() {
             console.log("--- initialSetup started ---"); // Debugging initial setup
+            // Fetch initial config from backend first
+            await fetchAdminConfig(); // This will populate inputs and local variables
+
+            // After fetching, ensure local variables reflect inputs
             numberOfHouses = parseInt(numHousesInput.value) || 20;
             dailyQuotaPerHouse = parseInt(dailyQuotaInput.value) || 7000;
             totalDailyQuotaStreet = numberOfHouses * dailyQuotaPerHouse;
+            currentCostRate = PRICE_RATE[costRateInput.value.toUpperCase()] || PRICE_RATE.STANDARD;
+
 
             // On initial load, always fetch weather to populate lastWeatherData for Default mode/wind
             lastWeatherData = await fetchWeather();
@@ -1045,7 +1142,7 @@ if (!getenv('WEATHER_API_KEY')) { // Check for one of the expected env vars
             // Display initial condition based on selected scenario or fetched weather
             const initialDisplayCondition = initialSelectedScenario === 'default' ? (lastWeatherData.condition || 'N/A') : solarProfileSelect.options[solarProfileSelect.selectedIndex].text;
 
-            updateUI(simulatedMinutes, 0, 0, 0, battery, 'Idle', initialReserveLevel, 0, 0, initialDisplayCondition, 'N/A', 0);
+            updateUI(simulatedMinutes, 0, 0, 0, battery, 'Idle', initialReserveLevel, 0, 0, initialDisplayCondition, costRateInput.value, 0); // Use costRateInput.value for initial display
             totalDailyQuotaSpan.textContent = `${totalDailyQuotaStreet}`; // Ensure this is set initially
             reserveThresholdDisplaySpan.textContent = `${Math.round(batteryReserveThreshold)}`; // Display reserve threshold initially
 
