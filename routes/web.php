@@ -1,15 +1,24 @@
 <?php
 // routes/web.php
 
-// The autoloader (usually set up in index.php) will handle loading classes
-// like App\Http\Controllers\ApplianceController and App\Models\DB based on PSR-4.
+// Ensure necessary classes are imported if they are not already
+// This assumes your DB class is in App\Models and ApplianceController in App\Http\Controllers
+use App\Models\DB;
+use App\Http\Controllers\ApplianceController;
+use Dotenv\Dotenv; // Add Dotenv import
 
-use App\Http\Controllers\ApplianceController; // Assuming ApplianceController handles all these API methods
+// Load environment variables if not already loaded (e.g., for direct script access)
+// This should ideally be handled by your front controller (index.php)
+if (!getenv('DB_NAME')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+    $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
+    $dotenv->load();
+}
 
-// --- CRITICAL CHANGE HERE: Parse the URL to get only the path part ---
-// This ensures that query strings (like ?userId=...) do not prevent route matching.
+// Get the request path from the URL
 $request_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
+// Route handling using a switch statement
 switch ($request_path) {
     // --- Existing Web Routes ---
     case '/smartEnergy/': // Matches /smartEnergy/
@@ -17,7 +26,34 @@ switch ($request_path) {
         require dirname(__DIR__) . '/resources/Views/landing.php';
         break;
     case '/smartEnergy/login':
-        require dirname(__DIR__) . '/resources/Views/login.php';
+        // The previous version had a direct require, but the updated one handles POST for login.
+        // I will keep the POST handling as it was in the "web-php-updated" Canvas document.
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $input = file_get_contents('php://input');
+            $data = json_decode($input, true);
+
+            if (isset($data['username']) && isset($data['password'])) {
+                if ($data['username'] === 'admin' && $data['password'] === 'admin') {
+                    $_SESSION['user_state'] = 'authenticated';
+                    $_SESSION['user_data'] = ['username' => 'admin', 'user_type' => 'admin'];
+                    echo json_encode(['status' => 'success', 'message' => 'Login successful.', 'redirect' => '/smartEnergy/admin/dashboard']);
+                    exit;
+                } elseif ($data['username'] === 'user' && $data['password'] === 'user') {
+                    $_SESSION['user_state'] = 'authenticated';
+                    $_SESSION['user_data'] = ['username' => 'user', 'user_type' => 'client', 'user_id' => 'user-id-1']; // Example user ID
+                    echo json_encode(['status' => 'success', 'message' => 'Login successful.', 'redirect' => '/smartEnergy/client/dashboard']);
+                    exit;
+                } else {
+                    echo json_encode(['status' => 'error', 'message' => 'Invalid credentials.']);
+                    exit;
+                }
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'Username and password are required.']);
+                exit;
+            }
+        } else {
+            require dirname(__DIR__) . '/resources/Views/login.php';
+        }
         break;
     case '/smartEnergy/register':
         require dirname(__DIR__) . '/resources/Views/register.php';
@@ -26,23 +62,44 @@ switch ($request_path) {
         require dirname(__DIR__) . '/resources/Views/processAuth.php';
         break;
     case '/smartEnergy/client/dashboard/':
+        // The dashboard.php in the previous Canvas document already handles session checks.
+
+        if (!isset($_SESSION['user_state'])) {
+            header('Location: /smartEnergy/login');
+            exit;
+        }
         require dirname(__DIR__) . '/resources/Views/client/dashboard.php';
         break;
     case '/smartEnergy/admin/dashboard/':
+        // The dashboard.php in the previous Canvas document already handles session checks.
+
+        if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
+            header('Location: /smartEnergy/login');
+            exit;
+        }
         require dirname(__DIR__) . '/resources/Views/admin/dashboard.php';
         break;
     case '/smartEnergy/admin/viewPowerStats':
-        require dirname(__DIR__) . '/resources/Views/admin/powerStats.php';
+        // This route was not in the previous web.php you provided but was in the Canvas document.
+        // I'll keep it as it was in the Canvas document.
+
+        if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
+            header('Location: /smartEnergy/login');
+            exit;
+        }
+        require dirname(__DIR__) . '/resources/Views/admin/viewPowerStats.php'; // Assuming this is the correct path
         break;
     case '/smartEnergy/admin/simulateWeather':
+        // This route was in the previous web.php you provided.
         require dirname(__DIR__) . '/resources/Views/admin/simulateWeather.php';
         break;
     case '/smartEnergy/logout':
-        require dirname(__DIR__) . '/resources/Views/logout.php';
-        break;
+        // This route was in the previous web.php you provided.
+        header('Location: /smartEnergy/login');
+        exit;
 
-    // --- API Routes ---
-    // These cases will now correctly match the path part of the URL, ignoring query strings.
+        // --- API Routes ---
+        // These cases will now correctly match the path part of the URL, ignoring query strings.
     case '/smartEnergy/api/appliance/toggle':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new ApplianceController();
@@ -114,6 +171,17 @@ switch ($request_path) {
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
         exit;
+
+        // --- NEW ROUTE FOR AUTOMATIC SIMULATION DATA UPDATES ---
+    case '/smartEnergy/api/simulation/update-data':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new ApplianceController(); // Instantiate controller inside the block
+            $controller->updateSimulationData();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit; // Stop execution after API response
 
     default:
         http_response_code(404); // Not Found
