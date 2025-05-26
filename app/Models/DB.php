@@ -143,4 +143,46 @@ class DB
         }
         return false;
     }
+
+    /**
+     * Starts a new database transaction.
+     *
+     * @return bool True on success.
+     * @throws PDOException If a transaction cannot be started or connection is not established.
+     */
+    public function beginTransaction(): bool
+    {
+        if (!$this->conn) {
+            throw new PDOException("Database connection not established.");
+        }
+        return $this->conn->beginTransaction();
+    }
+
+    /**
+     * Commits the current database transaction.
+     *
+     * @return bool True on success.
+     * @throws PDOException If the transaction cannot be committed or connection is not established.
+     */
+    public function commit(): bool
+    {
+        if (!$this->conn) {
+            throw new PDOException("Database connection not established.");
+        }
+        return $this->conn->commit();
+    }
+
+    /**
+     * Rolls back the current database transaction.
+     *
+     * @return bool True on success.
+     * @throws PDOException If the transaction cannot be rolled back or connection is not established.
+     */
+    public function rollBack(): bool
+    {
+        if (!$this->conn) {
+            throw new PDOException("Database connection not established.");
+        }
+        return $this->conn->rollBack();
+    }
 }

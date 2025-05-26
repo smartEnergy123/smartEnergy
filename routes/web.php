@@ -58,6 +58,8 @@ switch ($request_path) {
     case '/smartEnergy/processAuth':
         require dirname(__DIR__) . '/resources/Views/processAuth.php';
         break;
+
+    // CLIENT
     case '/smartEnergy/client/dashboard/':
         if (!isset($_SESSION['user_state'])) {
             header('Location: /smartEnergy/login');
@@ -65,6 +67,15 @@ switch ($request_path) {
         }
         require dirname(__DIR__) . '/resources/Views/client/dashboard.php';
         break;
+    case '/smartEnergy/client/make-subscription':
+        if (!isset($_SESSION['user_state'])) {
+            header('Location: /smartEnergy/login');
+            exit;
+        }
+        require dirname(__DIR__) . '/resources/Views/client/makeSubscription.php';
+        break;
+
+    // ADMIN
     case '/smartEnergy/admin/dashboard/':
         if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
             header('Location: /smartEnergy/login');

@@ -49,7 +49,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
         </div>
         <nav class="p-4 space-y-4">
             <a href="#" class="block text-gray-700 hover:text-green-600">📈 View Power Consumption</a>
-            <a href="#" class="block text-gray-700 hover:text-green-600">💳 Make Payment</a>
+            <a href="/smartEnergy/client/make-subscription" class="block text-gray-700 hover:text-green-600">💳 Make Payment</a>
             <a href="#" class="block text-gray-700 hover:text-green-600">📃 View Payment Plans</a>
             <a href="#" class="block text-gray-700 hover:text-green-600">📊 View Data</a>
             <a href="#" class="block text-gray-700 hover:text-green-600">📅 Subscription History</a>
