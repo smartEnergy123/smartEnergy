@@ -2,7 +2,6 @@
 
 use Dotenv\Dotenv;
 // dashboard.php
-session_start(); // Ensure session is started
 
 if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
     header('Location: /smartEnergy/login');

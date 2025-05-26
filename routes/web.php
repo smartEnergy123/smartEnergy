@@ -1,10 +1,8 @@
 <?php
 // routes/web.php
 
-// Ensure necessary classes are imported if they are not already
-// This assumes your DB class is in App\Models and ApplianceController in App\Http\Controllers
 use App\Http\Controllers\ApplianceController;
-use Dotenv\Dotenv; // Add Dotenv import
+use Dotenv\Dotenv;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
