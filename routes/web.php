@@ -3,15 +3,15 @@
 
 // Ensure necessary classes are imported if they are not already
 // This assumes your DB class is in App\Models and ApplianceController in App\Http\Controllers
-use App\Models\DB;
 use App\Http\Controllers\ApplianceController;
 use Dotenv\Dotenv; // Add Dotenv import
+
+require_once __DIR__ . '/../vendor/autoload.php';
 
 
 // Load environment variables if not already loaded (e.g., for direct script access)
 // This should ideally be handled by your front controller (index.php)
 if (!getenv('DB_NAME')) {
-    require_once __DIR__ . '/../vendor/autoload.php';
     $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
     $dotenv->load();
 }
@@ -23,7 +23,7 @@ $request_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 switch ($request_path) {
     // --- Existing Web Routes ---
     case '/smartEnergy/': // Matches /smartEnergy/
-    case '/': // Matches root if accessed directly (e.g., http://localhost/)
+    case '/': // Matches root if accessed directly (http://localhost/)
         require dirname(__DIR__) . '/resources/Views/landing.php';
         break;
     case '/smartEnergy/login':
@@ -176,6 +176,17 @@ switch ($request_path) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new ApplianceController(); // Instantiate controller inside the block
             $controller->updateSimulationData();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit; // Stop execution after API response
+
+        // --- NEW ROUTE TO GET DAILY SIMULATION SUMMARY ---
+    case '/smartEnergy/api/get-daily-summary':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $controller = new ApplianceController();
+            $controller->getDailySimulationSummary();
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);

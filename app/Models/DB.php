@@ -122,4 +122,25 @@ class DB
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
         return $result ?: []; // Return an empty array if no rows are found
     }
+
+    /**
+     * Executes an INSERT query and returns the ID of the last inserted row.
+     * This is particularly useful for tables with auto-incrementing primary keys.
+     *
+     * @param string $query The SQL INSERT query string.
+     * @param array $params An associative array of parameters for the prepared statement.
+     * @return int|false The ID of the last inserted row on success, or false on failure.
+     * @throws PDOException If the query preparation or execution fails, or connection is not established.
+     */
+    public function insertAndGetId(string $query, $params = [])
+    {
+        if (!$this->conn) {
+            throw new PDOException("Database connection not established.");
+        }
+        $stmt = $this->conn->prepare($query);
+        if ($stmt->execute($params)) {
+            return (int)$this->conn->lastInsertId();
+        }
+        return false;
+    }
 }

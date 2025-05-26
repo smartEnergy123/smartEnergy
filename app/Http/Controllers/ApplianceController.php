@@ -15,20 +15,13 @@ class ApplianceController
     public function __construct()
     {
         // Always set the JSON header first for API responses
-        // This is crucial to ensure consistent output, even if an error occurs early.
         header("Content-Type: application/json; charset=UTF-8");
 
-        // Instantiate your DB class. Autoloader will find App\Models\DB.
         $this->db = new DB();
 
-        // It's good practice to ensure the database connection is available
-        // If your DB class's constructor handles connection errors by throwing,
-        // this check might be slightly redundant but harmless.
-        // Assuming DB->connection() establishes and returns a PDO object, or null on failure.
         if (!$this->db->connection()) {
             error_log("FATAL: Database connection failed in ApplianceController constructor.");
             $this->sendJsonResponse('error', 'Database connection error.', 500);
-            // The exit is crucial here to prevent further execution if DB connection fails
         }
     }
 
@@ -42,10 +35,9 @@ class ApplianceController
      */
     private function sendJsonResponse($status, $message, $statusCode = 200, $data = [])
     {
-        // header("Content-Type: application/json; charset=UTF-8"); // Already set in constructor
         http_response_code($statusCode);
         echo json_encode(array_merge(['status' => $status, 'message' => $message], $data));
-        exit; // Terminate script execution after sending JSON
+        exit;
     }
 
     /**
@@ -57,18 +49,15 @@ class ApplianceController
         $input = file_get_contents('php://input');
         $data = json_decode($input, true);
 
-        // Validate input data
         if (json_last_error() !== JSON_ERROR_NONE || !isset($data['userId'], $data['applianceId'], $data['state'])) {
             $this->sendJsonResponse('error', 'Invalid or missing data.', 400);
         }
 
         $userId = $data['userId'];
         $applianceId = $data['applianceId'];
-        $isOn = (bool)$data['state']; // 'state' from JS corresponds to 'is_on' in DB
+        $isOn = (bool)$data['state'];
 
         try {
-            // Insert or update the `user_appliances` table
-            // This query handles both new entries and updates for existing user-appliance pairs.
             $query = "
                 INSERT INTO user_appliances (user_id, appliance_id, is_on, last_updated_at)
                 VALUES (:userId, :applianceId, :isOn, NOW())
@@ -85,9 +74,7 @@ class ApplianceController
 
             $this->sendJsonResponse('success', 'Appliance state updated.');
         } catch (PDOException $e) {
-            // Log the detailed database error for debugging purposes (e.g., to PHP's error log)
             error_log('Appliance toggle database error: ' . $e->getMessage());
-            // Send a generic error message to the client to avoid exposing sensitive details
             $this->sendJsonResponse('error', 'Database operation failed.', 500);
         }
     }
@@ -101,8 +88,6 @@ class ApplianceController
         $input = file_get_contents('php://input');
         $data = json_decode($input, true);
 
-        // Validate input data
-        // Ensure all required fields are present
         if (
             json_last_error() !== JSON_ERROR_NONE ||
             !isset($data['userId'], $data['currentConsumptionW'], $data['dailyConsumptionWh'], $data['timestamp'])
@@ -113,11 +98,9 @@ class ApplianceController
         $userId = $data['userId'];
         $currentConsumptionW = $data['currentConsumptionW'];
         $dailyConsumptionWh = $data['dailyConsumptionWh'];
-        $timestamp = $data['timestamp']; // Use the timestamp provided by the client (ISO format)
+        $timestamp = $data['timestamp'];
 
         try {
-            // Insert a new log entry into the `consumption_logs` table.
-            // This table stores a historical record of consumption at specific points in time.
             $query = "
                 INSERT INTO consumption_logs (user_id, timestamp, current_consumption_w, daily_consumption_wh)
                 VALUES (:userId, :timestamp, :currentConsumptionW, :dailyConsumptionWh)
@@ -138,25 +121,22 @@ class ApplianceController
     }
 
     /**
-     * Fetches the current energy cost rate from the simulation state.
+     * Fetches the current energy cost rate from the simulation config.
+     * This now fetches from `simulation_config` table.
      * Expects GET request.
      */
     public function getCostRate()
     {
         try {
-            // Query the `simulation_state` table to get the current cost rate.
-            // We assume there's always a single row with id = 1 for the simulation state.
-            $query = "SELECT current_cost_rate FROM simulation_state WHERE id = 1";
+            // Assuming current_cost_rate is in simulation_config with id=1
+            $query = "SELECT current_cost_rate FROM simulation_config WHERE id = 1";
             $result = $this->db->fetchSingleData($query);
 
             if ($result && isset($result['current_cost_rate'])) {
-                // If data is found, send it back as JSON
                 $this->sendJsonResponse('success', 'Cost rate fetched.', 200, ['costRate' => $result['current_cost_rate']]);
             } else {
-                // If the row with id=1 is not found or the column is missing,
-                // log a warning and send a default/placeholder value.
-                error_log('Simulation state (id=1) not found or current_cost_rate missing. Returning default.');
-                $this->sendJsonResponse('success', 'Cost rate not available.', 200, ['costRate' => 'Standard']); // Default rate
+                error_log('Simulation config (id=1) not found or current_cost_rate missing. Returning default.');
+                $this->sendJsonResponse('success', 'Cost rate not available.', 200, ['costRate' => 'Standard']);
             }
         } catch (PDOException $e) {
             error_log('Get cost rate database error: ' . $e->getMessage());
@@ -165,30 +145,63 @@ class ApplianceController
     }
 
     /**
+     * NEW METHOD: Sets the energy cost rate in the simulation config.
+     * Expects POST request with 'costRate'.
+     */
+    public function setCostRate()
+    {
+        $input = file_get_contents('php://input');
+        $data = json_decode($input, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['costRate'])) {
+            $this->sendJsonResponse('error', 'Invalid or missing costRate data.', 400);
+        }
+
+        $costRate = $data['costRate'];
+
+        try {
+            // Update the current_cost_rate in simulation_config table for id = 1
+            $query = "
+                INSERT INTO simulation_config (id, current_cost_rate, last_updated_at)
+                VALUES (1, :costRate, NOW())
+                ON DUPLICATE KEY UPDATE
+                    current_cost_rate = VALUES(current_cost_rate),
+                    last_updated_at = NOW()
+            ";
+            $params = [
+                ':costRate' => $costRate
+            ];
+            $this->db->execute($query, $params);
+
+            $this->sendJsonResponse('success', 'Cost rate updated successfully.', 200);
+        } catch (PDOException $e) {
+            error_log('Set cost rate database error: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Database error updating cost rate.', 500);
+        } catch (Exception $e) {
+            error_log('General error setting cost rate: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Server error setting cost rate.', 500);
+        }
+    }
+
+
+    /**
      * Fetches initial dashboard data for a specific user, including daily quota,
      * current daily consumption, and appliance states.
      * Expects GET request with userId in query parameters.
      */
     public function dashboardData()
     {
-        $userId = $_GET['userId'] ?? null; // Get userId from URL query parameter
+        $userId = $_GET['userId'] ?? null;
 
-        // Validate userId
         if (!$userId) {
             $this->sendJsonResponse('error', 'User ID is required.', 400);
         }
 
         try {
-            // 1. Fetch daily quota from `client_profiles` table
             $quotaQuery = "SELECT daily_quota_wh FROM client_profiles WHERE user_id = :userId";
             $clientProfile = $this->db->fetchSingleData($quotaQuery, [':userId' => $userId]);
-            // Provide a default if the user's profile is not found or quota is not set
             $dailyQuotaWh = $clientProfile['daily_quota_wh'] ?? 7000;
 
-            // 2. Fetch current daily consumption from `consumption_logs` for today
-            // This sums up the `daily_consumption_wh` column for the current day for the specific user.
-            // Ensure your `consumption_logs` table's `daily_consumption_wh` column is correctly populated
-            // by the `currentConsumption` (logConsumption) endpoint.
             $today = date('Y-m-d');
             $consumptionQuery = "
                 SELECT SUM(daily_consumption_wh) as total_wh_today
@@ -199,22 +212,17 @@ class ApplianceController
                 ':userId' => $userId,
                 ':today' => $today
             ]);
-            // If SUM returns NULL (e.g., no entries for today), default to 0
             $currentDailyConsumptionWh = $dailyConsumptionResult['total_wh_today'] ?? 0;
 
-            // 3. Fetch appliance states for the user from `user_appliances` table
             $applianceStatesQuery = "SELECT appliance_id as id, is_on as state FROM user_appliances WHERE user_id = :userId";
             $applianceStates = $this->db->fetchAllData($applianceStatesQuery, [':userId' => $userId]);
 
-            // Ensure $applianceStates is always an array, even if no records are found.
-            // Your DB->fetchAllData should ideally return an empty array if no rows are found.
             if (!is_array($applianceStates)) {
                 $applianceStates = [];
             }
 
-            // Send all fetched data back to the client
             $this->sendJsonResponse('success', 'Dashboard data fetched.', 200, [
-                'dailyQuotaWh' => (float)$dailyQuotaWh, // Cast to float for consistency with JS numbers
+                'dailyQuotaWh' => (float)$dailyQuotaWh,
                 'currentDailyConsumptionWh' => (float)$currentDailyConsumptionWh,
                 'applianceStates' => $applianceStates
             ]);
@@ -227,31 +235,35 @@ class ApplianceController
     /**
      * Handles setting simulation configuration parameters from the admin dashboard.
      * Expects POST request with numHouses and dailyQuota.
+     * Also sets the global cost rate here, assuming it's part of the config now.
      */
     public function setSimulationConfig()
     {
         $input = file_get_contents('php://input');
         $data = json_decode($input, true);
 
-        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['numHouses'], $data['dailyQuota'])) {
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['numHouses'], $data['dailyQuota'], $data['costRate'])) {
             $this->sendJsonResponse('error', 'Invalid or missing simulation configuration data.', 400);
         }
 
         $numHouses = (int)$data['numHouses'];
         $dailyQuotaPerHouse = (int)$data['dailyQuota'];
+        $costRate = $data['costRate']; // Fetch costRate from input
 
         try {
             $query = "
-                INSERT INTO simulation_config (id, num_houses, daily_quota_per_house_wh, last_updated_at)
-                VALUES (1, :numHouses, :dailyQuota, NOW())
+                INSERT INTO simulation_config (id, num_houses, daily_quota_per_house_wh, current_cost_rate, last_updated_at)
+                VALUES (1, :numHouses, :dailyQuota, :costRate, NOW())
                 ON DUPLICATE KEY UPDATE
                     num_houses = VALUES(num_houses),
                     daily_quota_per_house_wh = VALUES(daily_quota_per_house_wh),
+                    current_cost_rate = VALUES(current_cost_rate),
                     last_updated_at = NOW()
             ";
             $params = [
                 ':numHouses' => $numHouses,
-                ':dailyQuota' => $dailyQuotaPerHouse
+                ':dailyQuota' => $dailyQuotaPerHouse,
+                ':costRate' => $costRate // Add costRate to params
             ];
             $this->db->execute($query, $params);
 
@@ -263,59 +275,20 @@ class ApplianceController
     }
 
     /**
-     * Handles setting the global energy cost rate from the admin dashboard.
-     * Expects POST request with costRate.
-     */
-    public function setCostRate()
-    {
-        $input = file_get_contents('php://input');
-        $data = json_decode($input, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['costRate'])) {
-            $this->sendJsonResponse('error', 'Invalid or missing cost rate data.', 400);
-        }
-
-        $newCostRate = $data['costRate'];
-
-        try {
-            // Update the `simulation_state` table's `current_cost_rate`
-            // We assume id = 1 is the primary row for global simulation state.
-            $query = "
-                INSERT INTO simulation_state (id, current_cost_rate, last_updated_at)
-                VALUES (1, :costRate, NOW())
-                ON DUPLICATE KEY UPDATE
-                    current_cost_rate = VALUES(current_cost_rate),
-                    last_updated_at = NOW()
-            ";
-            $params = [':costRate' => $newCostRate];
-            $this->db->execute($query, $params);
-
-            $this->sendJsonResponse('success', 'Cost rate updated successfully.');
-        } catch (PDOException $e) {
-            error_log('Set cost rate database error: ' . $e->getMessage());
-            $this->sendJsonResponse('error', 'Database operation failed.', 500);
-        }
-    }
-
-    /**
      * Fetches simulation configuration parameters for the admin dashboard.
+     * Now includes `current_cost_rate` from `simulation_config`.
      * Expects GET request.
      */
     public function getSimulationConfig()
     {
         try {
-            // Fetch num_houses and daily_quota_per_house_wh from 'simulation_config' table
-            $configQuery = "SELECT num_houses, daily_quota_per_house_wh FROM simulation_config WHERE id = 1";
+            // Assuming all config is in simulation_config with id=1
+            $configQuery = "SELECT num_houses, daily_quota_per_house_wh, current_cost_rate FROM simulation_config WHERE id = 1";
             $simulationConfig = $this->db->fetchSingleData($configQuery);
 
-            // Fetch current_cost_rate from 'simulation_state' table
-            $costRateQuery = "SELECT current_cost_rate FROM simulation_state WHERE id = 1";
-            $costRateResult = $this->db->fetchSingleData($costRateQuery);
-
-            // Prepare data for response, providing defaults if no data is found
-            $numHouses = $simulationConfig['num_houses'] ?? 20; // Default to 20
-            $dailyQuotaPerHouse = $simulationConfig['daily_quota_per_house_wh'] ?? 7000; // Default to 7000 Wh
-            $costRate = $costRateResult['current_cost_rate'] ?? 'Standard'; // Default to 'Standard'
+            $numHouses = $simulationConfig['num_houses'] ?? 20;
+            $dailyQuotaPerHouse = $simulationConfig['daily_quota_per_house_wh'] ?? 7000;
+            $costRate = $simulationConfig['current_cost_rate'] ?? 'Standard';
 
             $this->sendJsonResponse('success', 'Admin configuration fetched.', 200, [
                 'numHouses' => (int)$numHouses,
@@ -329,127 +302,184 @@ class ApplianceController
     }
 
     /**
-     * NEW METHOD: Updates global simulation data (grid import, CO2, battery, simulated time).
-     * This method is intended to be called periodically (e.g., every 5 seconds) by the frontend.
-     * It will simulate minute-by-minute changes based on current configuration.
-     * Expects POST request (or GET if only fetching, but POST is better for state changes).
+     * NEW METHOD: Starts a new simulation record for the current day.
+     * This will insert a new row into `simulation_state` table.
+     * Returns the ID of the new simulation record.
+     */
+    public function startNewSimulationRun()
+    {
+        try {
+            $today = date('Y-m-d');
+            $currentTime = date('Y-m-d H:i:s');
+
+            // Fetch initial config for the new simulation from simulation_config
+            $configQuery = "SELECT num_houses, daily_quota_per_house_wh, current_cost_rate FROM simulation_config WHERE id = 1";
+            $simConfig = $this->db->fetchSingleData($configQuery);
+            $numHouses = $simConfig['num_houses'] ?? 20;
+            $dailyQuotaPerHouse = $simConfig['daily_quota_per_house_wh'] ?? 7000;
+            $currentCostRate = $simConfig['current_cost_rate'] ?? 'Standard';
+
+
+            // Insert a new simulation record with initial values
+            $query = "
+                INSERT INTO simulation_state (
+                    simulation_date, start_time, current_cost_rate, total_grid_import_wh,
+                    total_co2_emissions, current_battery_level_wh, simulated_minutes,
+                    num_houses, daily_quota_per_house_wh, weather_condition,
+                    total_solar_output_wh, total_wind_output_wh, total_consumption_wh,
+                    battery_status, total_renewable_available_wh, last_updated_at
+                )
+                VALUES (
+                    :simulation_date, :start_time, :current_cost_rate, 0.00,
+                    0.00, 5000.00, 0,
+                    :num_houses, :daily_quota_per_house_wh, 'N/A',
+                    0.00, 0.00, 0.00,
+                    'Idle', 0.00, NOW()
+                )
+            ";
+            $params = [
+                ':simulation_date' => $today,
+                ':start_time' => $currentTime,
+                ':current_cost_rate' => $currentCostRate,
+                ':num_houses' => $numHouses,
+                ':daily_quota_per_house_wh' => $dailyQuotaPerHouse
+            ];
+            $newSimId = $this->db->insertAndGetId($query, $params); // Assuming DB class has this method
+
+            if ($newSimId) {
+                $this->sendJsonResponse('success', 'New simulation started.', 201, ['simulationId' => $newSimId]);
+            } else {
+                $this->sendJsonResponse('error', 'Failed to start new simulation.', 500);
+            }
+        } catch (PDOException $e) {
+            error_log('Start new simulation database error: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Database error starting simulation.', 500);
+        } catch (Exception $e) {
+            error_log('General error starting new simulation: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Server error starting simulation.', 500);
+        }
+    }
+
+
+    /**
+     * UPDATED METHOD: Updates a specific simulation run's cumulative data.
+     * Expects POST request with simulationId, and current (non-cumulative) values
+     * for grid import, CO2, battery, simulated time, etc.
      */
     public function updateSimulationData()
     {
+        error_log("updateSimulationData: Method called."); // Log entry
+
         try {
-            // 1. Fetch current simulation configuration (num_houses, daily_quota_per_house_wh)
-            $stmtConfig = $this->db->connection()->prepare("SELECT num_houses, daily_quota_per_house_wh FROM simulation_config WHERE id = 1");
-            $stmtConfig->execute();
-            $simConfig = $stmtConfig->fetch(PDO::FETCH_ASSOC); // Corrected: use PDO::FETCH_ASSOC
+            $input = file_get_contents('php://input');
+            $data = json_decode($input, true);
 
-            // Defaults if config isn't found (though it should be initialized by setSimulationConfig)
-            $numHouses = $simConfig['num_houses'] ?? 20;
-            $dailyQuotaPerHouse = $simConfig['daily_quota_per_house_wh'] ?? 7000;
-
-            // 2. Fetch current simulation state (to get previous values)
-            $stmtState = $this->db->connection()->prepare("SELECT current_cost_rate, total_grid_import_wh, total_co2_emissions, current_battery_level_wh, simulated_minutes FROM simulation_state WHERE id = 1");
-            $stmtState->execute();
-            $simState = $stmtState->fetch(PDO::FETCH_ASSOC); // Corrected: use PDO::FETCH_ASSOC
-
-            // Initialize current values, or use defaults if no state exists yet (first run)
-            $currentCostRate = $simState['current_cost_rate'] ?? 'Standard';
-            $currentGridImport = $simState['total_grid_import_wh'] ?? 0.00;
-            $currentCO2Emissions = $simState['total_co2_emissions'] ?? 0.00;
-            $currentBatteryLevel = $simState['current_battery_level_wh'] ?? 5000; // Default initial battery charge
-            $simulatedMinutes = $simState['simulated_minutes'] ?? 0;
-
-            // --- 3. Simulation Logic ---
-            // These are simplified calculations for a 1-minute simulation step.
-            // You can make these more sophisticated (e.g., based on time of day, weather, appliance types).
-
-            // Simulate base consumption for each house (e.g., always-on appliances like fridges)
-            $baseConsumptionPerMinute = $numHouses * (mt_rand(10, 30) / 60); // 10-30W per house for 1 minute
-
-            // Simulate random peak usage (e.g., AC, washing machine)
-            $peakConsumptionPerMinute = 0;
-            if (mt_rand(1, 10) > 7) { // 30% chance of higher usage
-                $peakConsumptionPerMinute = $numHouses * (mt_rand(100, 500) / 60); // 100-500W per house for 1 minute
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                error_log("updateSimulationData: JSON decode error: " . json_last_error_msg());
+                $this->sendJsonResponse('error', 'Invalid JSON input.', 400);
             }
 
-            $simulatedConsumptionThisMinute = $baseConsumptionPerMinute + $peakConsumptionPerMinute;
+            // error_log("updateSimulationData: Received data: " . print_r($data, true)); // Verbose logging
 
-            // Simulate solar generation (basic daytime simulation)
-            $solarGenerationThisMinute = 0;
-            $hour = (int)date('H'); // Get current hour of the server
-            if ($hour >= 7 && $hour <= 18) { // Simulate generation during typical daylight hours
-                $solarGenerationThisMinute = $numHouses * (mt_rand(20, 150) / 60); // 20-150W per house for 1 minute
+            // Validate required fields
+            if (!isset(
+                $data['simulationId'],
+                $data['simulated_minutes'],
+                $data['current_battery_level_wh'],
+                $data['grid_import_wh_interval'],
+                $data['co2_emissions_kg_interval'],
+                $data['battery_status'],
+                $data['weather_condition'],
+                $data['current_cost_rate'],
+                $data['solar_output_wh_interval'],
+                $data['wind_output_wh_interval'],
+                $data['consumption_wh_interval'],
+                $data['renewable_available_wh_interval']
+            )) {
+                error_log("updateSimulationData: Missing required fields in received data. Data: " . json_encode($data));
+                $this->sendJsonResponse('error', 'Missing required simulation data fields.', 400);
             }
 
-            $netConsumptionThisMinute = $simulatedConsumptionThisMinute - $solarGenerationThisMinute;
+            $simulationId = (int)$data['simulationId'];
+            $simulatedMinutes = (int)$data['simulated_minutes'];
+            $currentBatteryLevel = (float)$data['current_battery_level_wh'];
+            $gridImportInterval = (float)$data['grid_import_wh_interval']; // Incremental for this interval
+            $co2EmissionsInterval = (float)$data['co2_emissions_kg_interval']; // Incremental for this interval
+            $batteryStatus = $data['battery_status'];
+            $weatherCondition = $data['weather_condition'];
+            $currentCostRate = $data['current_cost_rate'];
+            $solarOutputInterval = (float)$data['solar_output_wh_interval']; // Incremental for this interval
+            $windOutputInterval = (float)$data['wind_output_wh_interval'];   // Incremental for this interval
+            $consumptionInterval = (float)$data['consumption_wh_interval'];  // Incremental for this interval
+            $renewableAvailableInterval = (float)$data['renewable_available_wh_interval']; // Incremental for this interval
 
-            // Battery Management
-            $maxBatteryCapacity = 10000; // Define your battery's max capacity in Wh
-            $minBatteryLevel = 0;
+            // 1. Fetch current accumulated values from the database for this specific simulationId
+            $stmtFetch = $this->db->connection()->prepare("
+                SELECT total_grid_import_wh, total_co2_emissions, total_solar_output_wh,
+                        total_wind_output_wh, total_consumption_wh, total_renewable_available_wh
+                FROM simulation_state
+                WHERE id = :simulationId
+            ");
+            $stmtFetch->bindParam(':simulationId', $simulationId, PDO::PARAM_INT);
+            $stmtFetch->execute();
+            $currentDbState = $stmtFetch->fetch(PDO::FETCH_ASSOC);
 
-            $gridImportThisMinute = 0;
-            $gridExportThisMinute = 0;
-
-            // Try to use battery if consuming, or charge battery if generating
-            if ($netConsumptionThisMinute > 0) { // Net consumption (drawing power)
-                if ($currentBatteryLevel > $netConsumptionThisMinute) {
-                    $currentBatteryLevel -= $netConsumptionThisMinute; // Use battery
-                } else {
-                    // Battery doesn't cover all consumption, drain battery and import remaining
-                    $gridImportThisMinute = $netConsumptionThisMinute - $currentBatteryLevel;
-                    $currentBatteryLevel = $minBatteryLevel;
-                }
-            } elseif ($netConsumptionThisMinute < 0) { // Net generation (producing excess power)
-                $excessGeneration = abs($netConsumptionThisMinute);
-                if ($currentBatteryLevel + $excessGeneration < $maxBatteryCapacity) {
-                    $currentBatteryLevel += $excessGeneration; // Charge battery
-                } else {
-                    // Battery is full, export remaining excess to grid
-                    $gridExportThisMinute = ($currentBatteryLevel + $excessGeneration) - $maxBatteryCapacity;
-                    $currentBatteryLevel = $maxBatteryCapacity;
-                }
+            if (!$currentDbState) {
+                error_log("updateSimulationData: Simulation ID {$simulationId} not found in DB for update.");
+                $this->sendJsonResponse('error', 'Simulation record not found for update.', 404);
             }
 
-            // Update total grid import
-            $newGridImport = $currentGridImport + $gridImportThisMinute;
+            // Calculate new accumulated totals by adding current interval values to existing DB values
+            $newTotalGridImport = (float)$currentDbState['total_grid_import_wh'] + $gridImportInterval;
+            $newTotalCO2Emissions = (float)$currentDbState['total_co2_emissions'] + $co2EmissionsInterval;
+            $newTotalSolarOutput = (float)$currentDbState['total_solar_output_wh'] + $solarOutputInterval;
+            $newTotalWindOutput = (float)$currentDbState['total_wind_output_wh'] + $windOutputInterval;
+            $newTotalConsumption = (float)$currentDbState['total_consumption_wh'] + $consumptionInterval;
+            $newTotalRenewableAvailable = (float)$currentDbState['total_renewable_available_wh'] + $renewableAvailableInterval;
 
-            // Calculate CO2 emissions (example: 0.5 kg CO2 per kWh imported)
-            // Assuming CO2 only for grid import, not for power from battery or solar.
-            $co2EmissionsThisMinute = ($gridImportThisMinute / 1000) * 0.5; // Convert Wh to kWh
-            $newCO2Emissions = $currentCO2Emissions + $co2EmissionsThisMinute;
 
-            // Update simulated minutes (increment by 1 minute for each update call)
-            $newSimulatedMinutes = $simulatedMinutes + 1;
-
-            // --- 4. Update the simulation_state table ---
+            // 2. Update the simulation_state table for the specific simulationId with new cumulative totals
             $stmtUpdate = $this->db->connection()->prepare("
-                INSERT INTO simulation_state (id, current_cost_rate, total_grid_import_wh, total_co2_emissions, current_battery_level_wh, simulated_minutes, last_updated_at)
-                VALUES (1, :current_cost_rate, :total_grid_import_wh, :total_co2_emissions, :current_battery_level_wh, :simulated_minutes, NOW())
-                ON DUPLICATE KEY UPDATE
-                    current_cost_rate = VALUES(current_cost_rate),
-                    total_grid_import_wh = VALUES(total_grid_import_wh),
-                    total_co2_emissions = VALUES(total_co2_emissions),
-                    current_battery_level_wh = VALUES(current_battery_level_wh),
-                    simulated_minutes = VALUES(simulated_minutes),
+                UPDATE simulation_state
+                SET
+                    total_grid_import_wh = :total_grid_import_wh,
+                    total_co2_emissions = :total_co2_emissions,
+                    current_battery_level_wh = :current_battery_level_wh,
+                    simulated_minutes = :simulated_minutes,
+                    battery_status = :battery_status,
+                    weather_condition = :weather_condition,
+                    current_cost_rate = :current_cost_rate,
+                    total_solar_output_wh = :total_solar_output_wh,
+                    total_wind_output_wh = :total_wind_output_wh,
+                    total_consumption_wh = :total_consumption_wh,
+                    total_renewable_available_wh = :total_renewable_available_wh,
                     last_updated_at = NOW()
+                WHERE id = :simulationId
             ");
 
-            // Corrected: Use PDO::PARAM_STR for decimals/strings and PDO::PARAM_INT for integers
+            $stmtUpdate->bindParam(':total_grid_import_wh', $newTotalGridImport, PDO::PARAM_STR);
+            $stmtUpdate->bindParam(':total_co2_emissions', $newTotalCO2Emissions, PDO::PARAM_STR);
+            $stmtUpdate->bindParam(':current_battery_level_wh', $currentBatteryLevel, PDO::PARAM_STR); // Use STR for DECIMAL
+            $stmtUpdate->bindParam(':simulated_minutes', $simulatedMinutes, PDO::PARAM_INT);
+            $stmtUpdate->bindParam(':battery_status', $batteryStatus, PDO::PARAM_STR);
+            $stmtUpdate->bindParam(':weather_condition', $weatherCondition, PDO::PARAM_STR);
             $stmtUpdate->bindParam(':current_cost_rate', $currentCostRate, PDO::PARAM_STR);
-            $stmtUpdate->bindParam(':total_grid_import_wh', $newGridImport, PDO::PARAM_STR);
-            $stmtUpdate->bindParam(':total_co2_emissions', $newCO2Emissions, PDO::PARAM_STR);
-            $stmtUpdate->bindParam(':current_battery_level_wh', $currentBatteryLevel, PDO::PARAM_INT);
-            $stmtUpdate->bindParam(':simulated_minutes', $newSimulatedMinutes, PDO::PARAM_INT);
+            $stmtUpdate->bindParam(':total_solar_output_wh', $newTotalSolarOutput, PDO::PARAM_STR);
+            $stmtUpdate->bindParam(':total_wind_output_wh', $newTotalWindOutput, PDO::PARAM_STR);
+            $stmtUpdate->bindParam(':total_consumption_wh', $newTotalConsumption, PDO::PARAM_STR);
+            $stmtUpdate->bindParam(':total_renewable_available_wh', $newTotalRenewableAvailable, PDO::PARAM_STR);
+            $stmtUpdate->bindParam(':simulationId', $simulationId, PDO::PARAM_INT);
+
             $stmtUpdate->execute();
 
-            // --- 5. Send Response ---
+            error_log("updateSimulationData: Database update successful for simId: " . $simulationId);
+
             $this->sendJsonResponse('success', 'Simulation data updated.', 200, [
-                'current_cost_rate' => $currentCostRate,
-                'total_grid_import_wh' => round($newGridImport, 2),
-                'total_co2_emissions' => round($newCO2Emissions, 2),
-                'current_battery_level_wh' => round($currentBatteryLevel, 0),
-                'simulated_minutes' => $newSimulatedMinutes,
-                'num_houses' => $numHouses,
-                'daily_quota_per_house_wh' => $dailyQuotaPerHouse
+                'simulationId' => $simulationId,
+                'total_grid_import_wh_cumulative' => round($newTotalGridImport, 2),
+                'total_co2_emissions_cumulative' => round($newTotalCO2Emissions, 2),
+                'current_battery_level_wh' => round($currentBatteryLevel, 2),
+                'simulated_minutes' => $simulatedMinutes
             ]);
         } catch (PDOException $e) {
             error_log('Simulation data update database error: ' . $e->getMessage());
@@ -460,32 +490,144 @@ class ApplianceController
         }
     }
 
-    // getSimulationState
+    /**
+     * NEW METHOD: Updates the `end_time` of a specific simulation record.
+     */
+    public function endSimulationRun()
+    {
+        error_log("endSimulationRun: Method called.");
+        try {
+            $input = file_get_contents('php://input');
+            $data = json_decode($input, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || !isset($data['simulationId'])) {
+                $this->sendJsonResponse('error', 'Invalid or missing simulationId.', 400);
+            }
+
+            $simulationId = (int)$data['simulationId'];
+            $endTime = date('Y-m-d H:i:s');
+
+            $query = "UPDATE simulation_state SET end_time = :end_time WHERE id = :simulationId";
+            $params = [
+                ':end_time' => $endTime,
+                ':simulationId' => $simulationId
+            ];
+            $this->db->execute($query, $params);
+
+            $this->sendJsonResponse('success', 'Simulation run ended successfully.', 200);
+        } catch (PDOException $e) {
+            error_log('End simulation run database error: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Database error ending simulation.', 500);
+        } catch (Exception $e) {
+            error_log('General error ending simulation run: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Server error ending simulation.', 500);
+        }
+    }
+
+    /**
+     * NEW METHOD: Fetches the daily simulation summary for the current date.
+     * If no simulation exists for today, returns default zero values.
+     * This will be used to populate the main dashboard stats area.
+     */
+    public function getDailySimulationSummary()
+    {
+        try {
+            $today = date('Y-m-d');
+            // Fetch the latest updated record for today (in case multiple runs in a day, though logic implies one)
+            $query = "SELECT * FROM simulation_state WHERE simulation_date = :today ORDER BY last_updated_at DESC LIMIT 1";
+            $result = $this->db->fetchSingleData($query, [':today' => $today]);
+
+            if ($result) {
+                // Ensure numeric values are cast to float for consistent JSON output
+                $result['total_grid_import_wh'] = (float)$result['total_grid_import_wh'];
+                $result['total_co2_emissions'] = (float)$result['total_co2_emissions'];
+                $result['current_battery_level_wh'] = (float)$result['current_battery_level_wh'];
+                $result['simulated_minutes'] = (int)$result['simulated_minutes'];
+                $result['num_houses'] = (int)$result['num_houses'];
+                $result['daily_quota_per_house_wh'] = (int)$result['daily_quota_per_house_wh'];
+                $result['total_solar_output_wh'] = (float)$result['total_solar_output_wh'];
+                $result['total_wind_output_wh'] = (float)$result['total_wind_output_wh'];
+                $result['total_consumption_wh'] = (float)$result['total_consumption_wh'];
+                $result['total_renewable_available_wh'] = (float)$result['total_renewable_available_wh'];
+
+                $this->sendJsonResponse('success', 'Daily simulation summary fetched.', 200, ['data' => $result]);
+            } else {
+                // Return default zero values if no simulation for today
+                $this->sendJsonResponse('success', 'No simulation data for today.', 200, ['data' => [
+                    'id' => null,
+                    'simulation_date' => $today,
+                    'start_time' => null,
+                    'end_time' => null,
+                    'current_cost_rate' => 'Standard',
+                    'total_grid_import_wh' => 0.00,
+                    'total_co2_emissions' => 0.00,
+                    'current_battery_level_wh' => 5000.00, // Default for display
+                    'simulated_minutes' => 0,
+                    'num_houses' => 20,
+                    'daily_quota_per_house_wh' => 7000,
+                    'weather_condition' => 'N/A',
+                    'total_solar_output_wh' => 0.00,
+                    'total_wind_output_wh' => 0.00,
+                    'total_consumption_wh' => 0.00,
+                    'battery_status' => 'Idle',
+                    'total_renewable_available_wh' => 0.00,
+                    'last_updated_at' => null
+                ]]);
+            }
+        } catch (PDOException $e) {
+            error_log('Get daily simulation summary database error: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Database error fetching daily summary.', 500);
+        } catch (Exception $e) {
+            error_log('General error fetching daily simulation summary: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Server error fetching daily summary.', 500);
+        }
+    }
+
+    /**
+     * NEW METHOD: Fetches the current state of a specific simulation run.
+     * Expects GET request with 'simulationId' in query parameters.
+     * If 'simulationId' is not provided, it attempts to fetch the latest for today.
+     * This will be used by the simulation dashboard to display live data.
+     */
     public function getSimulationState()
     {
-        // Assume simulation_state has an ID of 1 for the main simulation
-        $stmt = $this->db->connection()->prepare("SELECT * FROM simulation_state WHERE id = 1");
-        $stmt->execute();
-        $state = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $simulationId = $_GET['simulationId'] ?? null;
 
-        if ($state) {
-            header('Content-Type: application/json');
-            echo json_encode(['status' => 'success', 'data' => $state]);
-        } else {
-            // Return default/initial state if no record exists
-            header('Content-Type: application/json');
-            echo json_encode(['status' => 'success', 'data' => [
-                'simulated_minutes' => 0,
-                'current_battery_level_wh' => 5000, // Or batteryCapacity / 2
-                'total_grid_import_wh' => 0,
-                'total_co2_emissions' => 0,
-                'battery_status' => 'Idle',
-                'weather_condition' => 'N/A',
-                'current_cost_rate' => 'Standard',
-                'num_houses' => 20,
-                'daily_quota_per_house_wh' => 7000,
-                'total_renewable_available_wh' => 0
-            ]]);
+        try {
+            $result = null;
+            if ($simulationId) {
+                $query = "SELECT * FROM simulation_state WHERE id = :simulationId";
+                $result = $this->db->fetchSingleData($query, [':simulationId' => $simulationId]);
+            } else {
+                // If no specific ID, try to get the latest for today
+                $today = date('Y-m-d');
+                $query = "SELECT * FROM simulation_state WHERE simulation_date = :today ORDER BY last_updated_at DESC LIMIT 1";
+                $result = $this->db->fetchSingleData($query, [':today' => $today]);
+            }
+
+            if ($result) {
+                // Ensure numeric values are cast for consistent JSON output
+                $result['total_grid_import_wh'] = (float)$result['total_grid_import_wh'];
+                $result['total_co2_emissions'] = (float)$result['total_co2_emissions'];
+                $result['current_battery_level_wh'] = (float)$result['current_battery_level_wh'];
+                $result['simulated_minutes'] = (int)$result['simulated_minutes'];
+                $result['num_houses'] = (int)$result['num_houses'];
+                $result['daily_quota_per_house_wh'] = (int)$result['daily_quota_per_house_wh'];
+                $result['total_solar_output_wh'] = (float)$result['total_solar_output_wh'];
+                $result['total_wind_output_wh'] = (float)$result['total_wind_output_wh'];
+                $result['total_consumption_wh'] = (float)$result['total_consumption_wh'];
+                $result['total_renewable_available_wh'] = (float)$result['total_renewable_available_wh'];
+
+                $this->sendJsonResponse('success', 'Simulation state fetched.', 200, ['simulationState' => $result]);
+            } else {
+                $this->sendJsonResponse('error', 'Simulation state not found.', 404);
+            }
+        } catch (PDOException $e) {
+            error_log('Get simulation state database error: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Database error fetching simulation state.', 500);
+        } catch (Exception $e) {
+            error_log('General error fetching simulation state: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Server error fetching simulation state.', 500);
         }
     }
 }
