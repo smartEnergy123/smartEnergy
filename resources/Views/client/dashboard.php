@@ -17,7 +17,6 @@ $currentDailyConsumptionWh = 0; // Will be fetched from API
 // This ID would be used to store/retrieve user-specific data in the backend
 $userId = $_SESSION['user_data']['id'] ?? 'user_unknown';
 $username = $_SESSION['user_data']['username'] ?? 'User';
-echo 'User Id = ' . $userId;
 ?>
 
 <!DOCTYPE html>
@@ -131,6 +130,47 @@ echo 'User Id = ' . $userId;
             </div>
 
         </main>
+    </div>
+
+    <div id="quotaModalOverlay"
+        class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div id="quotaModal" class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full text-center relative">
+            <h3 class="text-2xl font-bold text-red-600 mb-4">Daily Quota Exceeded!</h3>
+            <p class="text-gray-700 mb-6 text-lg">
+                Your daily energy allocation has been used up.
+                <br>
+                To continue enjoying power, you can subscribe for an extra power top-up,
+                or wait until tomorrow for your new daily allocation.
+            </p>
+            <div class="flex justify-center space-x-4">
+                <button id="subscribeBtn"
+                    class="bg-green-500 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-green-600 transition">
+                    Subscribe Now
+                </button>
+                <button id="cancelBtn"
+                    class="bg-gray-300 text-gray-800 px-6 py-3 rounded-lg text-lg font-semibold hover:bg-gray-400 transition">
+                    Wait Until Tomorrow
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pleaseSubscribeModalOverlay"
+        class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div id="pleaseSubscribeModal" class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full text-center relative">
+            <h3 class="text-2xl font-bold text-blue-600 mb-4">Welcome to SmartEnergy!</h3>
+            <p class="text-gray-700 mb-6 text-lg">
+                It looks like you don't have an active subscription yet.
+                <br>
+                Please subscribe to a plan to start enjoying your daily energy allocation and manage your appliances.
+            </p>
+            <div class="flex justify-center">
+                <button id="goToSubscriptionBtn"
+                    class="bg-blue-500 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-600 transition">
+                    Go to Subscription Plans
+                </button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -248,6 +288,12 @@ echo 'User Id = ' . $userId;
             let userDailyConsumptionWh = 0; // Total consumption today in Watt-hours (Wh) - will be fetched
             let userDailyQuotaWh = 0; // Daily quota in Wh - will be fetched
 
+            // Flags for modal and appliance control
+            let quotaExceededModalShown = false;
+            let appliancesStoppedDueToQuota = false;
+            let hasActiveSubscription = false; // NEW: Flag for overall subscription status
+            let pleaseSubscribeModalShown = false; // NEW: Flag for "Please Subscribe" modal
+
             // --- DOM Elements ---
             const applianceGrid = document.getElementById("applianceGrid");
             const userCurrentConsumptionSpan = document.getElementById("userCurrentConsumption");
@@ -255,6 +301,16 @@ echo 'User Id = ' . $userId;
             const userDailyQuotaSpan = document.getElementById("userDailyQuota");
             const quotaStatusSpan = document.getElementById("quotaStatus");
             const currentCostRateDisplaySpan = document.getElementById("currentCostRateDisplay"); // To display dynamic cost
+
+            // Get modal elements
+            const quotaModalOverlay = document.getElementById("quotaModalOverlay");
+            const subscribeBtn = document.getElementById("subscribeBtn");
+            const cancelBtn = document.getElementById("cancelBtn");
+
+            // NEW: Get "Please Subscribe" modal elements
+            const pleaseSubscribeModalOverlay = document.getElementById("pleaseSubscribeModalOverlay");
+            const goToSubscriptionBtn = document.getElementById("goToSubscriptionBtn");
+
 
             // The userId is passed from PHP, ensuring it's available in JS
             const userId = "<?php echo $userId; ?>";
@@ -275,7 +331,9 @@ echo 'User Id = ' . $userId;
                 let renderedCount = 0;
                 appliances.forEach(appliance => {
                     const applianceCard = document.createElement("div");
-                    applianceCard.className = "bg-gray-50 rounded-lg p-4 shadow flex flex-col items-center"; // Adjusted padding/layout
+                    // Add a class to disable pointer events if no active subscription
+                    applianceCard.className = `bg-gray-50 rounded-lg p-4 shadow flex flex-col items-center
+                                               ${!hasActiveSubscription ? 'opacity-50 pointer-events-none' : ''}`;
 
                     applianceCard.innerHTML = `
                            <span class="text-4xl mb-2">${appliance.icon}</span>
@@ -314,7 +372,7 @@ echo 'User Id = ' . $userId;
             function updateApplianceUI(applianceId, newState) {
                 const label = document.querySelector(`label[for="toggle-${applianceId}"] .toggle-label`);
                 const statusTextSpan = document.getElementById(`status-${applianceId}`);
-                const checkbox = document.getElementById(`toggle-${applianceId}`);
+                const checkbox = document.getElementById(`toggle-${appliance.id}`);
 
                 if (checkbox) { // Ensure checkbox exists before trying to update it
                     checkbox.checked = newState; // Ensure checkbox reflects the state
@@ -339,6 +397,18 @@ echo 'User Id = ' . $userId;
              * @param {string} applianceId - The ID of the appliance to toggle.
              */
             async function toggleAppliance(applianceId) {
+                // Prevent toggling if no active subscription or if quota is exceeded
+                if (!hasActiveSubscription) {
+                    showPleaseSubscribeModal(); // Prompt to subscribe
+                    return;
+                }
+                if (appliancesStoppedDueToQuota) {
+                    alert("Quota exceeded! Please subscribe for a top-up or wait until tomorrow to use appliances.");
+                    // Ensure the UI reflects the off state if they tried to toggle it
+                    updateApplianceUI(applianceId, false);
+                    return;
+                }
+
                 const currentState = applianceStates[applianceId];
                 const newState = !currentState;
                 applianceStates[applianceId] = newState; // Optimistically update internal state
@@ -399,10 +469,16 @@ echo 'User Id = ' . $userId;
 
             /**
              * Sends the current consumption data (instantaneous Watts, accumulated daily Watt-hours,
-             * and timestamp) to the backend for logging. This is the function that resolves the 400 error.
+             * and timestamp) to the backend for logging.
              */
             async function sendConsumptionDataToBackend() {
-                const timestamp = new Date(); // Get current timestamp in ISO 8601 format
+                // Only send consumption data if there's an active subscription
+                if (!hasActiveSubscription) {
+                    console.log("No active subscription, skipping consumption data send.");
+                    return;
+                }
+
+                const timestamp = new Date().toISOString(); // Get current timestamp in ISO 8601 format
 
                 try {
                     const response = await fetch('/smartEnergy/api/consumption/current', {
@@ -432,6 +508,81 @@ echo 'User Id = ' . $userId;
                 }
             }
 
+            /**
+             * Stops all active appliances, updates their UI, and recalculates total consumption.
+             */
+            async function stopAllAppliances() {
+                console.log("Quota exceeded: Attempting to stop all active appliances.");
+                appliancesStoppedDueToQuota = true; // Set flag
+                userCurrentTotalConsumptionW = 0; // Reset consumption immediately for UI
+
+                for (const appliance of appliances) {
+                    if (applianceStates[appliance.id]) {
+                        applianceStates[appliance.id] = false; // Update internal state
+                        updateApplianceUI(appliance.id, false); // Update UI to turn off toggle
+
+                        // Send toggle off request to backend for persistence
+                        try {
+                            await fetch('/smartEnergy/api/appliance/toggle', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    userId: userId,
+                                    applianceId: appliance.id,
+                                    state: false
+                                })
+                            });
+                        } catch (error) {
+                            console.error(`Error sending toggle off for ${appliance.id}:`, error);
+                        }
+                    }
+                }
+                userCurrentConsumptionSpan.textContent = userCurrentTotalConsumptionW; // Update dashboard display
+                console.log("All appliances stopped. Total consumption is now:", userCurrentTotalConsumptionW, "W");
+            }
+
+            /**
+             * Displays the quota exceeded modal.
+             */
+            function showQuotaModal() {
+                if (!quotaExceededModalShown) {
+                    quotaModalOverlay.classList.remove('hidden');
+                    quotaExceededModalShown = true;
+                    console.log("Quota Exceeded Modal Shown.");
+                }
+            }
+
+            /**
+             * Hides the quota exceeded modal.
+             */
+            function hideQuotaModal() {
+                quotaModalOverlay.classList.add('hidden');
+                quotaExceededModalShown = false;
+                console.log("Quota Exceeded Modal Hidden.");
+            }
+
+            /**
+             * NEW: Displays the "Please Subscribe" modal.
+             */
+            function showPleaseSubscribeModal() {
+                if (!pleaseSubscribeModalShown) {
+                    pleaseSubscribeModalOverlay.classList.remove('hidden');
+                    pleaseSubscribeModalShown = true;
+                    console.log("Please Subscribe Modal Shown.");
+                }
+            }
+
+            /**
+             * NEW: Hides the "Please Subscribe" modal.
+             */
+            function hidePleaseSubscribeModal() {
+                pleaseSubscribeModalOverlay.classList.add('hidden');
+                pleaseSubscribeModalShown = false;
+                console.log("Please Subscribe Modal Hidden.");
+            }
+
 
             /**
              * Updates the client-side display of daily consumption and checks against the quota.
@@ -439,23 +590,44 @@ echo 'User Id = ' . $userId;
              * should be handled persistently on the backend.
              */
             function updateDailyConsumptionSimulation() {
-                // Calculate consumption for the current simulated minute (1 real second)
-                const consumptionInThisMinuteWh = userCurrentTotalConsumptionW * (1 / 60); // Wh = W * (hours)
-                userDailyConsumptionWh += consumptionInThisMinuteWh;
+                // Only accumulate if there's an active subscription AND quota is NOT exceeded
+                if (hasActiveSubscription && (!appliancesStoppedDueToQuota || userDailyConsumptionWh < userDailyQuotaWh)) {
+                    const consumptionInThisMinuteWh = userCurrentTotalConsumptionW * (1 / 60); // Wh = W * (hours)
+                    userDailyConsumptionWh += consumptionInThisMinuteWh;
+                }
 
                 userDailyConsumptionSpan.textContent = Math.round(userDailyConsumptionWh); // Round for display
 
                 // Check and update quota status display
-                if (userDailyQuotaWh > 0 && userDailyConsumptionWh >= userDailyQuotaWh) {
-                    quotaStatusSpan.textContent = `Quota Exceeded! (${Math.round(userDailyConsumptionWh - userDailyQuotaWh)} Wh over)`;
-                    quotaStatusSpan.className = 'text-sm mt-2 font-semibold text-red-600';
-                } else if (userDailyQuotaWh > 0) {
-                    const remaining = userDailyQuotaWh - userDailyConsumptionWh;
-                    quotaStatusSpan.textContent = `Remaining Quota: ${Math.round(remaining)} Wh`;
-                    quotaStatusSpan.className = 'text-sm mt-2 font-semibold text-green-600';
-                } else {
-                    quotaStatusSpan.textContent = 'Quota data not available.';
+                if (hasActiveSubscription) { // Only check quota if there's an active subscription
+                    if (userDailyQuotaWh > 0 && userDailyConsumptionWh >= userDailyQuotaWh) {
+                        quotaStatusSpan.textContent = `Quota Exceeded! (${Math.round(userDailyConsumptionWh - userDailyQuotaWh)} Wh over)`;
+                        quotaStatusSpan.className = 'text-sm mt-2 font-semibold text-red-600';
+
+                        if (!appliancesStoppedDueToQuota) {
+                            stopAllAppliances(); // Stop all appliances
+                        }
+                        showQuotaModal(); // Show the modal
+                    } else {
+                        const remaining = userDailyQuotaWh - userDailyConsumptionWh;
+                        quotaStatusSpan.textContent = `Remaining Quota: ${Math.round(remaining)} Wh`;
+                        quotaStatusSpan.className = 'text-sm mt-2 font-semibold text-green-600';
+                        // If quota was exceeded but now is not (e.g., after a top-up), hide modal
+                        if (quotaExceededModalShown) {
+                            hideQuotaModal();
+                            // If a top-up occurred, you'd also need to re-enable appliance toggling
+                            appliancesStoppedDueToQuota = false; // Allow toggling again
+                            // Optionally, re-render appliances to ensure they are clickable again
+                            // renderAppliances(); // This might be too heavy, just ensure pointer-events are reset
+                        }
+                    }
+                } else { // No active subscription
+                    quotaStatusSpan.textContent = 'No active subscription.';
                     quotaStatusSpan.className = 'text-sm mt-2 font-semibold text-gray-600';
+                    userDailyQuotaSpan.textContent = 'N/A';
+                    userDailyConsumptionSpan.textContent = 'N/A';
+                    // Ensure quota exceeded modal is hidden if no subscription
+                    hideQuotaModal();
                 }
             }
 
@@ -496,32 +668,63 @@ echo 'User Id = ' . $userId;
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    const result = await response.json(); // Use 'result' to avoid clash with local 'data'
+                    const result = await response.json();
+                    console.log("================RESULT FOR THE DASHBOARD============= ", result.data);
 
                     if (result.status === 'success' && result.data) {
-                        const data = result.data; // Now, 'data' holds the actual payload
+                        const data = result.data;
 
-                        // Update daily quota and consumption
-                        userDailyQuotaWh = data.dailyQuotaWh;
-                        userDailyConsumptionWh = data.currentDailyConsumptionWh;
-                        userDailyQuotaSpan.textContent = userDailyQuotaWh;
-                        userDailyConsumptionSpan.textContent = Math.round(userDailyConsumptionWh);
-                        updateDailyConsumptionSimulation(); // Call to update quota status display
+                        hasActiveSubscription = data.hasActiveSubscription; // Update global flag
 
-                        // Update appliance states based on fetched data
-                        data.applianceStates.forEach(appliance => {
-                            if (applianceStates.hasOwnProperty(appliance.id)) {
-                                applianceStates[appliance.id] = appliance.state;
-                                updateApplianceUI(appliance.id, appliance.state);
+                        if (!hasActiveSubscription) {
+                            console.log("No active subscription detected. Showing subscribe modal.");
+                            userDailyQuotaWh = 0;
+                            userDailyConsumptionWh = 0;
+                            userCurrentTotalConsumptionW = 0; // Ensure current consumption is 0
+                            // Reset all appliance states to off if no subscription
+                            appliances.forEach(appliance => {
+                                applianceStates[appliance.id] = false;
+                            });
+                            updateTotalConsumption(); // Update UI for 0W
+                            renderAppliances(); // Re-render to apply opacity/pointer-events-none
+                            showPleaseSubscribeModal();
+                            // Also ensure quota exceeded modal is hidden
+                            hideQuotaModal();
+                            appliancesStoppedDueToQuota = true; // Effectively stop appliances if no subscription
+                        } else {
+                            hidePleaseSubscribeModal(); // Hide subscribe modal if active subscription found
+                            appliancesStoppedDueToQuota = false; // Allow toggling again
+                            renderAppliances(); // Re-render to remove opacity/pointer-events-none
+
+                            // Update daily quota and consumption
+                            userDailyQuotaWh = data.dailyQuotaWh;
+                            userDailyConsumptionWh = data.currentDailyConsumptionWh;
+                            userDailyQuotaSpan.textContent = userDailyQuotaWh;
+                            userDailyConsumptionSpan.textContent = Math.round(userDailyConsumptionWh);
+                            updateDailyConsumptionSimulation(); // Call to update quota status display
+
+                            // Update appliance states based on fetched data
+                            // Ensure data.applianceStates is an array before iterating
+                            if (Array.isArray(data.applianceStates)) {
+                                data.applianceStates.forEach(appliance => {
+                                    if (applianceStates.hasOwnProperty(appliance.id)) {
+                                        // Ensure state is boolean
+                                        applianceStates[appliance.id] = Boolean(appliance.state);
+                                        updateApplianceUI(appliance.id, Boolean(appliance.state));
+                                    }
+                                });
                             }
-                        });
-                        updateTotalConsumption(); // Update total consumption based on fetched appliance states
+                            updateTotalConsumption(); // Update total consumption based on fetched appliance states
+                        }
                     } else {
                         console.error("Backend reported an error or missing data:", result.message);
                         userDailyQuotaSpan.textContent = 'Error';
                         userDailyConsumptionSpan.textContent = 'Error';
                         quotaStatusSpan.textContent = 'Failed to load data.';
                         quotaStatusSpan.className = 'text-sm mt-2 font-semibold text-red-600';
+                        // If backend reports error, assume no subscription or problem
+                        showPleaseSubscribeModal();
+                        appliancesStoppedDueToQuota = true;
                     }
 
                 } catch (error) {
@@ -530,13 +733,17 @@ echo 'User Id = ' . $userId;
                     userDailyConsumptionSpan.textContent = 'Error';
                     quotaStatusSpan.textContent = 'Failed to load data.';
                     quotaStatusSpan.className = 'text-sm mt-2 font-semibold text-red-600';
+                    // If network error, also assume no subscription or problem
+                    showPleaseSubscribeModal();
+                    appliancesStoppedDueToQuota = true;
                 }
             }
 
 
             // --- Initial Setup ---
             console.log("DOMContentLoaded: renderAppliances called.");
-            renderAppliances(); // Draw the appliance grid on page load
+            // Initial render might be without full subscription status, will be updated by fetchDashboardData
+            renderAppliances();
 
             console.log("DOMContentLoaded: fetchDashboardData called.");
             fetchDashboardData(); // Fetch initial user data from backend
@@ -546,15 +753,36 @@ echo 'User Id = ' . $userId;
 
             // Start timers
             console.log("DOMContentLoaded: Setting up intervals.");
-            // This interval handles the client-side display of daily consumption and quota.
-            setInterval(updateDailyConsumptionSimulation, 1000); // Simulate daily consumption update every 1 second (e.g., representing 1 simulated minute)
-
-            // This interval sends the current and daily consumption data to the backend.
-            // Adjust the interval as needed for how frequently you want to log data.
-            // For a "per minute" log, 60 * 1000 ms (60 seconds) is appropriate.
+            setInterval(updateDailyConsumptionSimulation, 1000); // Simulate daily consumption update every 1 second
             setInterval(sendConsumptionDataToBackend, 60 * 1000); // Send consumption data to backend every 60 seconds
+            setInterval(fetchCurrentCostRate, 5000); // Fetch cost rate every 5 seconds
 
-            setInterval(fetchCurrentCostRate, 5000); // Fetch cost rate every 5 seconds (example)
+            // Event listeners for Quota Exceeded Modal buttons
+            subscribeBtn.addEventListener('click', () => {
+                console.log("Subscribe button clicked (from Quota Exceeded Modal)!");
+                // TODO: Implement actual subscription/top-up logic and redirect
+                alert("Redirecting to subscription page for top-up (not yet implemented).");
+                hideQuotaModal();
+                // After successful top-up, you would need to:
+                // 1. Make a backend call to update user's quota/balance.
+                // 2. Re-fetch dashboard data to update client-side `userDailyQuotaWh` and `userDailyConsumptionWh`.
+                // 3. Set `appliancesStoppedDueToQuota = false;` to re-enable appliance toggling.
+            });
+
+            cancelBtn.addEventListener('click', () => {
+                console.log("Cancel button clicked (from Quota Exceeded Modal)!");
+                alert("You have chosen to wait until tomorrow for your new daily allocation. Appliances remain off.");
+                hideQuotaModal();
+            });
+
+            // NEW: Event listener for "Go to Subscription Plans" button
+            goToSubscriptionBtn.addEventListener('click', () => {
+                console.log("Go to Subscription Plans button clicked!");
+                // TODO: Implement redirection to a dedicated subscription plans page
+                alert("Redirecting to subscription plans page (not yet implemented).");
+                // For now, just hide the modal
+                hidePleaseSubscribeModal();
+            });
         });
 
         // Keep existing sidebar and user dropdown toggles

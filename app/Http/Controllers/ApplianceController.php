@@ -36,7 +36,11 @@ class ApplianceController
     private function sendJsonResponse($status, $message, $statusCode = 200, $data = [])
     {
         http_response_code($statusCode);
-        echo json_encode(array_merge(['status' => $status, 'message' => $message], $data));
+        echo json_encode([
+            'status' => $status,
+            'message' => $message,
+            'data' => $data
+        ]);
         exit;
     }
 
