@@ -17,7 +17,7 @@ $currentDailyConsumptionWh = 0; // Will be fetched from API
 // This ID would be used to store/retrieve user-specific data in the backend
 $userId = $_SESSION['user_data']['id'] ?? 'user_unknown';
 $username = $_SESSION['user_data']['username'] ?? 'User';
-
+echo 'User Id = ' . $userId;
 ?>
 
 <!DOCTYPE html>
@@ -256,11 +256,15 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
             const quotaStatusSpan = document.getElementById("quotaStatus");
             const currentCostRateDisplaySpan = document.getElementById("currentCostRateDisplay"); // To display dynamic cost
 
-            const userId = "<?php echo $userId; ?>"; // Get user ID from PHP session
+            // The userId is passed from PHP, ensuring it's available in JS
+            const userId = "<?php echo $userId; ?>";
 
             // --- Functions ---
 
-            // Function to render the appliance grid
+            /**
+             * Renders the appliance grid dynamically based on the 'appliances' array.
+             * Each appliance gets a card with its icon, name, wattage, and a toggle switch.
+             */
             function renderAppliances() {
                 console.log("renderAppliances called.");
                 if (!applianceGrid) {
@@ -274,17 +278,19 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                     applianceCard.className = "bg-gray-50 rounded-lg p-4 shadow flex flex-col items-center"; // Adjusted padding/layout
 
                     applianceCard.innerHTML = `
-                         <span class="text-4xl mb-2">${appliance.icon}</span> <h4 class="text-md font-semibold text-gray-800 text-center">${appliance.name}</h4>
-                         <p class="text-sm text-gray-600 mb-4">${appliance.wattage} W</p>
+                           <span class="text-4xl mb-2">${appliance.icon}</span>
+                           <h4 class="text-md font-semibold text-gray-800 text-center">${appliance.name}</h4>
+                           <p class="text-sm text-gray-600 mb-4">${appliance.wattage} W</p>
 
-                         <label for="toggle-${appliance.id}" class="flex items-center cursor-pointer">
-                             <div class="relative">
-                                 <input type="checkbox" id="toggle-${appliance.id}" class="sr-only toggle-checkbox">
-                                 <div class="block bg-red-500 w-10 h-6 rounded-full toggle-label transition"></div>
-                                 <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition toggle-circle"></div>
-                             </div>
-                             <div class="ml-3 text-gray-700 font-medium text-sm" id="status-${appliance.id}">Off</div> </label>
-                     `;
+                           <label for="toggle-${appliance.id}" class="flex items-center cursor-pointer">
+                               <div class="relative">
+                                   <input type="checkbox" id="toggle-${appliance.id}" class="sr-only toggle-checkbox">
+                                   <div class="block bg-red-500 w-10 h-6 rounded-full toggle-label transition"></div>
+                                   <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition toggle-circle"></div>
+                               </div>
+                               <div class="ml-3 text-gray-700 font-medium text-sm" id="status-${appliance.id}">Off</div>
+                           </label>
+                           `;
 
                     // Add event listener to the checkbox
                     const checkbox = applianceCard.querySelector(`#toggle-${appliance.id}`);
@@ -300,36 +306,49 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                 console.log(`Finished rendering appliances. Rendered ${renderedCount} cards.`);
             }
 
-            // Function to update appliance UI based on its state
+            /**
+             * Updates the UI for a specific appliance based on its new state.
+             * @param {string} applianceId - The ID of the appliance.
+             * @param {boolean} newState - The new state (true for on, false for off).
+             */
             function updateApplianceUI(applianceId, newState) {
                 const label = document.querySelector(`label[for="toggle-${applianceId}"] .toggle-label`);
                 const statusTextSpan = document.getElementById(`status-${applianceId}`);
                 const checkbox = document.getElementById(`toggle-${applianceId}`);
 
-                checkbox.checked = newState; // Ensure checkbox reflects the state
-                if (newState) {
-                    label.classList.remove('bg-red-500');
-                    label.classList.add('bg-green-500');
-                    statusTextSpan.textContent = 'On';
-                } else {
-                    label.classList.remove('bg-green-500');
-                    label.classList.add('bg-red-500');
-                    statusTextSpan.textContent = 'Off';
+                if (checkbox) { // Ensure checkbox exists before trying to update it
+                    checkbox.checked = newState; // Ensure checkbox reflects the state
+                }
+
+                if (label && statusTextSpan) { // Ensure elements exist
+                    if (newState) {
+                        label.classList.remove('bg-red-500');
+                        label.classList.add('bg-green-500');
+                        statusTextSpan.textContent = 'On';
+                    } else {
+                        label.classList.remove('bg-green-500');
+                        label.classList.add('bg-red-500');
+                        statusTextSpan.textContent = 'Off';
+                    }
                 }
             }
 
-            // Function to handle toggling an appliance
+            /**
+             * Handles toggling an appliance's state, updates UI, recalculates total consumption,
+             * and sends the state change to the backend.
+             * @param {string} applianceId - The ID of the appliance to toggle.
+             */
             async function toggleAppliance(applianceId) {
                 const currentState = applianceStates[applianceId];
                 const newState = !currentState;
                 applianceStates[applianceId] = newState; // Optimistically update internal state
 
                 updateApplianceUI(applianceId, newState); // Update UI immediately for responsiveness
-                updateTotalConsumption(); // Recalculate total consumption
+                updateTotalConsumption(); // Recalculate total consumption locally
 
                 // Send state change to the backend via API
                 try {
-                    const response = await fetch('/smartEnergy/api/appliance/toggle', { // Corrected URL
+                    const response = await fetch('/smartEnergy/api/appliance/toggle', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -347,7 +366,11 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                         updateApplianceUI(applianceId, currentState);
                         updateTotalConsumption(); // Recalculate again to revert
                         console.error(`Failed to toggle appliance ${applianceId}. Status: ${response.status}`);
-                        // Optionally show an error message to the user
+                        const errorData = await response.json().catch(() => ({
+                            message: 'No JSON response or malformed JSON'
+                        }));
+                        console.error("Server error message:", errorData.message);
+                        // Optionally show an error message to the user (e.g., using a custom modal)
                     }
                     // If successful, no further action needed as state is already updated optimistically
 
@@ -360,68 +383,90 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                 }
             }
 
-            // Function to recalculate and display total current consumption (Watts)
-            async function updateTotalConsumption() {
+            /**
+             * Recalculates the total current consumption (in Watts) based on active appliances
+             * and updates the display. This function does NOT send data to the backend directly.
+             */
+            function updateTotalConsumption() {
                 userCurrentTotalConsumptionW = 0;
                 appliances.forEach(appliance => {
                     if (applianceStates[appliance.id]) {
                         userCurrentTotalConsumptionW += appliance.wattage;
                     }
                 });
-
                 userCurrentConsumptionSpan.textContent = userCurrentTotalConsumptionW;
+            }
 
-                // Send user's current W consumption to the backend periodically or on change.
+            /**
+             * Sends the current consumption data (instantaneous Watts, accumulated daily Watt-hours,
+             * and timestamp) to the backend for logging. This is the function that resolves the 400 error.
+             */
+            async function sendConsumptionDataToBackend() {
+                const timestamp = new Date(); // Get current timestamp in ISO 8601 format
+
                 try {
-                    const response = await fetch('/smartEnergy/api/consumption/current', { // Corrected URL
+                    const response = await fetch('/smartEnergy/api/consumption/current', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
                             userId: userId,
-                            currentConsumptionW: userCurrentTotalConsumptionW
+                            currentConsumptionW: userCurrentTotalConsumptionW, // Instantaneous W
+                            dailyConsumptionWh: Math.round(userDailyConsumptionWh), // Accumulated daily Wh
+                            timestamp: timestamp
                         })
                     });
 
                     if (!response.ok) {
-                        console.error(`Failed to send current consumption. Status: ${response.status}`);
+                        console.error(`Failed to send consumption data. Status: ${response.status}`);
+                        const errorData = await response.json().catch(() => ({
+                            message: 'No JSON response or malformed JSON'
+                        }));
+                        console.error("Server error message:", errorData.message);
+                    } else {
+                        console.log("Consumption data sent successfully at", timestamp);
                     }
                 } catch (error) {
-                    console.error("Error sending current consumption to backend:", error);
+                    console.error("Error sending consumption data to backend:", error);
                 }
             }
 
-            // Function to update daily consumption (Wh) - called periodically
-            // This function now primarily updates the display and checks quota locally,
-            // assuming the actual daily consumption accumulation happens on the backend.
+
+            /**
+             * Updates the client-side display of daily consumption and checks against the quota.
+             * This function simulates accumulation for display purposes; actual accumulation
+             * should be handled persistently on the backend.
+             */
             function updateDailyConsumptionSimulation() {
-                // For a real app, userDailyConsumptionWh would be fetched from the backend.
-                // This simulation step here is for demonstration without a full backend loop.
-                // In a true system, the backend would track this based on actual appliance runtimes.
-                const consumptionInThisMinuteWh = userCurrentTotalConsumptionW * (1 / 60); // Wh = W * hours
+                // Calculate consumption for the current simulated minute (1 real second)
+                const consumptionInThisMinuteWh = userCurrentTotalConsumptionW * (1 / 60); // Wh = W * (hours)
                 userDailyConsumptionWh += consumptionInThisMinuteWh;
 
                 userDailyConsumptionSpan.textContent = Math.round(userDailyConsumptionWh); // Round for display
 
-                // Check and update quota status
-                if (userDailyConsumptionWh >= userDailyQuotaWh) {
+                // Check and update quota status display
+                if (userDailyQuotaWh > 0 && userDailyConsumptionWh >= userDailyQuotaWh) {
                     quotaStatusSpan.textContent = `Quota Exceeded! (${Math.round(userDailyConsumptionWh - userDailyQuotaWh)} Wh over)`;
                     quotaStatusSpan.className = 'text-sm mt-2 font-semibold text-red-600';
-                    // Logic for charging beyond quota would happen on the backend
-                } else {
+                } else if (userDailyQuotaWh > 0) {
                     const remaining = userDailyQuotaWh - userDailyConsumptionWh;
                     quotaStatusSpan.textContent = `Remaining Quota: ${Math.round(remaining)} Wh`;
                     quotaStatusSpan.className = 'text-sm mt-2 font-semibold text-green-600';
+                } else {
+                    quotaStatusSpan.textContent = 'Quota data not available.';
+                    quotaStatusSpan.className = 'text-sm mt-2 font-semibold text-gray-600';
                 }
-                // In a real app, userDailyConsumptionWh should be saved to the database by the backend.
             }
 
 
-            // Function to fetch the current cost rate from the simulation state (Actual Backend Call)
+            /**
+             * Fetches the current energy cost rate from the simulation state backend API.
+             * Updates the display with the fetched rate and applies color coding.
+             */
             async function fetchCurrentCostRate() {
                 try {
-                    const response = await fetch('/smartEnergy/api/simulation/costRate'); // Corrected URL
+                    const response = await fetch('/smartEnergy/api/simulation/costRate');
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -441,30 +486,43 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                 }
             }
 
-            // Function to fetch initial user dashboard data (quota, current daily consumption, appliance states)
+            /**
+             * Fetches initial user dashboard data (daily quota, current daily consumption,
+             * and appliance states) from the backend API.
+             */
             async function fetchDashboardData() {
                 try {
-                    const response = await fetch(`/smartEnergy/api/user/dashboard-data?userId=${userId}`); // Corrected URL
+                    const response = await fetch(`/smartEnergy/api/user/dashboard-data?userId=${userId}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    const data = await response.json();
+                    const result = await response.json(); // Use 'result' to avoid clash with local 'data'
 
-                    // Update daily quota and consumption
-                    userDailyQuotaWh = data.dailyQuotaWh;
-                    userDailyConsumptionWh = data.currentDailyConsumptionWh;
-                    userDailyQuotaSpan.textContent = userDailyQuotaWh;
-                    userDailyConsumptionSpan.textContent = Math.round(userDailyConsumptionWh);
-                    updateDailyConsumptionSimulation(); // Call to update quota status display
+                    if (result.status === 'success' && result.data) {
+                        const data = result.data; // Now, 'data' holds the actual payload
 
-                    // Update appliance states based on fetched data
-                    data.applianceStates.forEach(appliance => {
-                        if (applianceStates.hasOwnProperty(appliance.id)) {
-                            applianceStates[appliance.id] = appliance.state;
-                            updateApplianceUI(appliance.id, appliance.state);
-                        }
-                    });
-                    updateTotalConsumption(); // Update total consumption based on fetched appliance states
+                        // Update daily quota and consumption
+                        userDailyQuotaWh = data.dailyQuotaWh;
+                        userDailyConsumptionWh = data.currentDailyConsumptionWh;
+                        userDailyQuotaSpan.textContent = userDailyQuotaWh;
+                        userDailyConsumptionSpan.textContent = Math.round(userDailyConsumptionWh);
+                        updateDailyConsumptionSimulation(); // Call to update quota status display
+
+                        // Update appliance states based on fetched data
+                        data.applianceStates.forEach(appliance => {
+                            if (applianceStates.hasOwnProperty(appliance.id)) {
+                                applianceStates[appliance.id] = appliance.state;
+                                updateApplianceUI(appliance.id, appliance.state);
+                            }
+                        });
+                        updateTotalConsumption(); // Update total consumption based on fetched appliance states
+                    } else {
+                        console.error("Backend reported an error or missing data:", result.message);
+                        userDailyQuotaSpan.textContent = 'Error';
+                        userDailyConsumptionSpan.textContent = 'Error';
+                        quotaStatusSpan.textContent = 'Failed to load data.';
+                        quotaStatusSpan.className = 'text-sm mt-2 font-semibold text-red-600';
+                    }
 
                 } catch (error) {
                     console.error("Failed to fetch dashboard data:", error);
@@ -488,7 +546,14 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
 
             // Start timers
             console.log("DOMContentLoaded: Setting up intervals.");
+            // This interval handles the client-side display of daily consumption and quota.
             setInterval(updateDailyConsumptionSimulation, 1000); // Simulate daily consumption update every 1 second (e.g., representing 1 simulated minute)
+
+            // This interval sends the current and daily consumption data to the backend.
+            // Adjust the interval as needed for how frequently you want to log data.
+            // For a "per minute" log, 60 * 1000 ms (60 seconds) is appropriate.
+            setInterval(sendConsumptionDataToBackend, 60 * 1000); // Send consumption data to backend every 60 seconds
+
             setInterval(fetchCurrentCostRate, 5000); // Fetch cost rate every 5 seconds (example)
         });
 
