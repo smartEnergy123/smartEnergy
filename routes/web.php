@@ -169,6 +169,18 @@ switch ($request_path) {
         }
         exit; // Important: stop execution after API response
 
+
+        // --- NEW ROUTE TO START A NEW SIMULATION RUN ---
+    case '/smartEnergy/api/simulation/start-new-run':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new ApplianceController();
+            $controller->startNewSimulationRun();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit; // Stop execution after API response
+
         // --- NEW ROUTE FOR AUTOMATIC SIMULATION DATA UPDATES ---
     case '/smartEnergy/api/simulation/update-data':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -181,7 +193,7 @@ switch ($request_path) {
         exit; // Stop execution after API response
 
         // --- NEW ROUTE TO GET DAILY SIMULATION SUMMARY ---
-    case '/smartEnergy/api/get-daily-summary':
+    case '/smartEnergy/api/simulation/get-daily-summary':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $controller = new ApplianceController();
             $controller->getDailySimulationSummary();

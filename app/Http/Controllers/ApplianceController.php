@@ -14,7 +14,7 @@ class ApplianceController
 
     public function __construct()
     {
-        // Always set the JSON header first for API responses
+        //set the JSON header first for API responses
         header("Content-Type: application/json; charset=UTF-8");
 
         $this->db = new DB();
