@@ -1,11 +1,14 @@
 <?php
 // routes/web.php
 
+session_start(); // Ensure session is started at the very beginning
+
+// The autoloader (usually set up in index.php) will handle loading classes
+// like App\Http\Controllers\ApplianceController and App\Models\DB based on PSR-4.
+
 use App\Http\Controllers\ApplianceController;
-use Dotenv\Dotenv;
-
-require_once __DIR__ . '/../vendor/autoload.php';
-
+use App\Http\Controllers\SubscriptionController; // NEW: Import the new SubscriptionController
+use Dotenv\Dotenv; // Import Dotenv
 
 // Load environment variables if not already loaded (e.g., for direct script access)
 // This should ideally be handled by your front controller (index.php)
@@ -14,14 +17,14 @@ if (!getenv('DB_NAME')) {
     $dotenv->load();
 }
 
-// Get the request path from the URL
+// --- CRITICAL CHANGE HERE: Parse the URL to get only the path part ---
+// This ensures that query strings (like ?userId=...) do not prevent route matching.
 $request_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-// Route handling using a switch statement
 switch ($request_path) {
     // --- Existing Web Routes ---
     case '/smartEnergy/': // Matches /smartEnergy/
-    case '/': // Matches root if accessed directly (http://localhost/)
+    case '/': // Matches root if accessed directly (e.g., http://localhost/)
         require dirname(__DIR__) . '/resources/Views/landing.php';
         break;
     case '/smartEnergy/login':
@@ -32,19 +35,21 @@ switch ($request_path) {
             if (isset($data['username']) && isset($data['password'])) {
                 if ($data['username'] === 'admin' && $data['password'] === 'admin') {
                     $_SESSION['user_state'] = 'authenticated';
-                    $_SESSION['user_data'] = ['username' => 'admin', 'user_type' => 'admin'];
+                    $_SESSION['user_data'] = ['username' => 'admin', 'user_type' => 'admin', 'id' => 'admin_1']; // Consistent ID
                     echo json_encode(['status' => 'success', 'message' => 'Login successful.', 'redirect' => '/smartEnergy/admin/dashboard']);
                     exit;
                 } elseif ($data['username'] === 'user' && $data['password'] === 'user') {
                     $_SESSION['user_state'] = 'authenticated';
-                    $_SESSION['user_data'] = ['username' => 'user', 'user_type' => 'client', 'user_id' => 'user-id-1']; // Example user ID
+                    $_SESSION['user_data'] = ['username' => 'user', 'user_type' => 'client', 'id' => 'client_1']; // Consistent ID
                     echo json_encode(['status' => 'success', 'message' => 'Login successful.', 'redirect' => '/smartEnergy/client/dashboard']);
                     exit;
                 } else {
+                    http_response_code(401); // Unauthorized
                     echo json_encode(['status' => 'error', 'message' => 'Invalid credentials.']);
                     exit;
                 }
             } else {
+                http_response_code(400); // Bad Request
                 echo json_encode(['status' => 'error', 'message' => 'Username and password are required.']);
                 exit;
             }
@@ -60,23 +65,23 @@ switch ($request_path) {
         break;
 
     // CLIENT
-    case '/smartEnergy/client/dashboard/':
+    case '/smartEnergy/client/dashboard': // Removed trailing slash for consistency
         if (!isset($_SESSION['user_state'])) {
             header('Location: /smartEnergy/login');
             exit;
         }
         require dirname(__DIR__) . '/resources/Views/client/dashboard.php';
         break;
-    case '/smartEnergy/client/make-subscription':
+    case '/smartEnergy/client/make-subscription': // Route for the subscription page
         if (!isset($_SESSION['user_state'])) {
             header('Location: /smartEnergy/login');
             exit;
         }
-        require dirname(__DIR__) . '/resources/Views/client/makeSubscription.php';
+        require dirname(__DIR__) . '/resources/Views/clients/makeSubscription.php';
         break;
 
     // ADMIN
-    case '/smartEnergy/admin/dashboard/':
+    case '/smartEnergy/admin/dashboard': // Removed trailing slash for consistency
         if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
             header('Location: /smartEnergy/login');
             exit;
@@ -94,6 +99,8 @@ switch ($request_path) {
         require dirname(__DIR__) . '/resources/Views/admin/simulateWeather.php';
         break;
     case '/smartEnergy/logout':
+        session_unset();
+        session_destroy();
         header('Location: /smartEnergy/login');
         exit;
 
@@ -173,7 +180,10 @@ switch ($request_path) {
     case '/smartEnergy/api/simulation/get-state':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $controller = new ApplianceController();
-            $controller->getSimulationState(); // This is the new method we need to implement
+            // This method needs to be implemented in ApplianceController
+            // For now, it will return a 501 Not Implemented
+            http_response_code(501);
+            echo json_encode(['status' => 'error', 'message' => 'API route not implemented: /smartEnergy/api/simulation/get-state']);
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
@@ -185,7 +195,10 @@ switch ($request_path) {
     case '/smartEnergy/api/simulation/start-new-run':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new ApplianceController();
-            $controller->startNewSimulationRun();
+            // This method needs to be implemented in ApplianceController
+            // For now, it will return a 501 Not Implemented
+            http_response_code(501);
+            echo json_encode(['status' => 'error', 'message' => 'API route not implemented: /smartEnergy/api/simulation/start-new-run']);
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
@@ -196,7 +209,10 @@ switch ($request_path) {
     case '/smartEnergy/api/simulation/update-data':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new ApplianceController(); // Instantiate controller inside the block
-            $controller->updateSimulationData();
+            // This method needs to be implemented in ApplianceController
+            // For now, it will return a 501 Not Implemented
+            http_response_code(501);
+            echo json_encode(['status' => 'error', 'message' => 'API route not implemented: /smartEnergy/api/simulation/update-data']);
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
@@ -207,12 +223,27 @@ switch ($request_path) {
     case '/smartEnergy/api/simulation/get-daily-summary':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $controller = new ApplianceController();
-            $controller->getDailySimulationSummary();
+            // This method needs to be implemented in ApplianceController
+            // For now, it will return a 501 Not Implemented
+            http_response_code(501);
+            echo json_encode(['status' => 'error', 'message' => 'API route not implemented: /smartEnergy/api/simulation/get-daily-summary']);
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
         exit; // Stop execution after API response
+
+        // NEW API ROUTE: For processing subscriptions, now handled by SubscriptionController
+    case '/smartEnergy/api/process-subscription':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once dirname(__DIR__) . '/app/Http/Controllers/SubscriptionController.php'; // Ensure the file is included
+            $controller = new SubscriptionController(); // Use the new controller
+            $controller->processSubscription();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit;
 
     default:
         http_response_code(404); // Not Found
