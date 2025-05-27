@@ -165,10 +165,12 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                 Please subscribe to a plan to start enjoying your daily energy allocation and manage your appliances.
             </p>
             <div class="flex justify-center">
-                <button id="goToSubscriptionBtn"
-                    class="bg-blue-500 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-600 transition">
-                    Go to Subscription Plans
-                </button>
+                <a href="/smartEnergy/client/make-subscription">
+                    <button id="goToSubscriptionBtn"
+                        class="bg-blue-500 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-600 transition">
+                        Go to Subscription Plans
+                    </button>
+                </a>
             </div>
         </div>
     </div>
@@ -779,7 +781,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
             goToSubscriptionBtn.addEventListener('click', () => {
                 console.log("Go to Subscription Plans button clicked!");
                 // TODO: Implement redirection to a dedicated subscription plans page
-                alert("Redirecting to subscription plans page (not yet implemented).");
+                alert("Redirecting to subscription plans page");
                 // For now, just hide the modal
                 hidePleaseSubscribeModal();
             });

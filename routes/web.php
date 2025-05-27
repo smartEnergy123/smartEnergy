@@ -1,17 +1,15 @@
 <?php
 // routes/web.php
 
-session_start(); // Ensure session is started at the very beginning
-
 // The autoloader (usually set up in index.php) will handle loading classes
 // like App\Http\Controllers\ApplianceController and App\Models\DB based on PSR-4.
 
+use Dotenv\Dotenv;
 use App\Http\Controllers\ApplianceController;
 use App\Http\Controllers\SubscriptionController; // NEW: Import the new SubscriptionController
-use Dotenv\Dotenv; // Import Dotenv
 
-// Load environment variables if not already loaded (e.g., for direct script access)
-// This should ideally be handled by your front controller (index.php)
+require_once __DIR__ . '/../vendor/autoload.php';
+
 if (!getenv('DB_NAME')) {
     $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
     $dotenv->load();
@@ -65,7 +63,7 @@ switch ($request_path) {
         break;
 
     // CLIENT
-    case '/smartEnergy/client/dashboard': // Removed trailing slash for consistency
+    case '/smartEnergy/client/dashboard/': // Removed trailing slash for consistency
         if (!isset($_SESSION['user_state'])) {
             header('Location: /smartEnergy/login');
             exit;
@@ -77,11 +75,11 @@ switch ($request_path) {
             header('Location: /smartEnergy/login');
             exit;
         }
-        require dirname(__DIR__) . '/resources/Views/clients/makeSubscription.php';
+        require dirname(__DIR__) . '/resources/Views/client/makeSubscription.php';
         break;
 
     // ADMIN
-    case '/smartEnergy/admin/dashboard': // Removed trailing slash for consistency
+    case '/smartEnergy/admin/dashboard/': // Removed trailing slash for consistency
         if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
             header('Location: /smartEnergy/login');
             exit;
