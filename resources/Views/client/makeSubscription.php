@@ -264,12 +264,12 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                     });
 
                     const result = await response.json();
-                    console.log(response);
+
                     if (response.ok && result.status === 'success') {
                         displayMessage('Payment successful! Redirecting to dashboard...', 'text-green-600');
                         // Redirect to dashboard after a short delay
                         setTimeout(() => {
-                            window.location.href = '/smartEnergy/client/dashboard';
+                            window.location.href = '/smartEnergy/client/dashboard/';
                         }, 2000);
                     } else {
                         displayMessage(`Payment failed: ${result.message || 'Unknown error.'}`, 'text-red-600');

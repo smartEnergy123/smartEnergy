@@ -180,7 +180,7 @@ class ApplianceController
             $this->sendJsonResponse('success', 'Cost rate updated successfully.', 200);
         } catch (PDOException $e) {
             error_log('Set cost rate database error: ' . $e->getMessage());
-            $this->sendJsonResponse('error', 'Database error updating cost rate.', 500);
+            $this->sendJsonResponse('error', 'Database operation failed.', 500);
         } catch (Exception $e) {
             error_log('General error setting cost rate: ' . $e->getMessage());
             $this->sendJsonResponse('error', 'Server error setting cost rate.', 500);
@@ -190,49 +190,79 @@ class ApplianceController
 
     /**
      * Fetches initial dashboard data for a specific user, including daily quota,
-     * current daily consumption, and appliance states.
-     * Expects GET request with userId in query parameters.
+     * current daily consumption, current total consumption (wattage),
+     * current cost rate, and appliance states.
+     * Expects an authenticated user (session-based).
+     * This method replaces the previous dashboardData logic to match expected client-side data.
      */
     public function dashboardData()
     {
-        $userId = $_GET['userId'] ?? null;
+        // Ensure session is started to access $_SESSION for authenticated user
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        $userId = $_SESSION['user_data']['id'] ?? null; // get user ID from session
 
         if (!$userId) {
-            $this->sendJsonResponse('error', 'User ID is required.', 400);
+            // If user is not authenticated, redirect to login or send an error
+            // For API calls, sending a 401 error is appropriate.
+            $this->sendJsonResponse('error', 'User not authenticated.', 401);
         }
 
         try {
+            // 1. Fetch daily_quota_wh from client_profiles
             $quotaQuery = "SELECT daily_quota_wh FROM client_profiles WHERE user_id = :userId";
             $clientProfile = $this->db->fetchSingleData($quotaQuery, [':userId' => $userId]);
-            $dailyQuotaWh = $clientProfile['daily_quota_wh'] ?? 7000;
+            // IMPORTANT: Default dailyQuotaWh to 0 if no subscription/profile, not 7000.
+            // This allows the front-end to correctly identify users without a plan.
+            $dailyQuotaWh = (int)($clientProfile['daily_quota_wh'] ?? 0);
 
+            // 2. Fetch current and daily consumption from consumption_logs
             $today = date('Y-m-d');
             $consumptionQuery = "
-                SELECT SUM(daily_consumption_wh) as total_wh_today
+                SELECT
+                    daily_consumption_wh,
+                    current_consumption_w
                 FROM consumption_logs
                 WHERE user_id = :userId AND DATE(timestamp) = :today
+                ORDER BY timestamp DESC LIMIT 1
             ";
             $dailyConsumptionResult = $this->db->fetchSingleData($consumptionQuery, [
                 ':userId' => $userId,
                 ':today' => $today
             ]);
-            $currentDailyConsumptionWh = $dailyConsumptionResult['total_wh_today'] ?? 0;
+            $currentDailyConsumptionWh = (int)($dailyConsumptionResult['daily_consumption_wh'] ?? 0);
+            $currentTotalConsumptionW = (int)($dailyConsumptionResult['current_consumption_w'] ?? 0);
 
+
+            // 3. Fetch current cost rate from simulation_config
+            // This assumes simulation_config holds the global current_cost_rate.
+            $costRateQuery = "SELECT current_cost_rate FROM simulation_config WHERE id = 1";
+            $costRateResult = $this->db->fetchSingleData($costRateQuery);
+            $currentCostRate = $costRateResult['current_cost_rate'] ?? 'Standard'; // Default rate if not found
+
+
+            // 4. Fetch appliance states for the user
             $applianceStatesQuery = "SELECT appliance_id as id, is_on as state FROM user_appliances WHERE user_id = :userId";
             $applianceStates = $this->db->fetchAllData($applianceStatesQuery, [':userId' => $userId]);
-
-            if (!is_array($applianceStates)) {
+            if (!is_array($applianceStates)) { // Ensure it's an array even if no appliances
                 $applianceStates = [];
             }
 
+            // Send all required dashboard data in one response
             $this->sendJsonResponse('success', 'Dashboard data fetched.', 200, [
-                'dailyQuotaWh' => (float)$dailyQuotaWh,
-                'currentDailyConsumptionWh' => (float)$currentDailyConsumptionWh,
+                'dailyQuotaWh' => $dailyQuotaWh,
+                'currentDailyConsumptionWh' => $currentDailyConsumptionWh,
+                'currentTotalConsumptionW' => $currentTotalConsumptionW,
+                'currentCostRate' => $currentCostRate,
                 'applianceStates' => $applianceStates
             ]);
         } catch (PDOException $e) {
-            error_log('Dashboard data fetch error: ' . $e->getMessage());
-            $this->sendJsonResponse('error', 'Failed to fetch dashboard data.', 500);
+            error_log('Dashboard data fetch database error: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Failed to fetch dashboard data: ' . $e->getMessage(), 500);
+        } catch (Exception $e) { // Catch general exceptions as well for robustness
+            error_log('Dashboard data fetch general error: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Server error fetching dashboard data.', 500);
         }
     }
 

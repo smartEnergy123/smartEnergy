@@ -50,11 +50,11 @@ class SubscriptionController
         }
 
         try {
-            // Use DB class methods for transactions
             $this->db->beginTransaction();
 
             $endDate = null;
             $isActive = true;
+            $transactionId = uniqid('sub_', true);
 
             if ($planType === 'monthly_standard') {
                 $endDate = (new DateTime())->modify('+1 month')->format('Y-m-d H:i:s');
@@ -67,17 +67,22 @@ class SubscriptionController
 
             // Insert into user_subscriptions table
             $insertSubscriptionQuery = "
-                INSERT INTO user_subscriptions (user_id, plan_type, amount_paid, quota_granted_wh, start_date, end_date, is_active)
-                VALUES (:userId, :planType, :amountPaid, :quotaGrantedWh, NOW(), :endDate, :isActive)
+                INSERT INTO user_subscriptions (user_id, plan_type, amount_paid, quota_granted_wh, start_date, end_date, is_active, transaction_id)
+                VALUES (:userId, :planType, :amountPaid, :quotaGrantedWh, NOW(), :endDate, :isActive, :transactionId)
             ";
-            $this->db->execute($insertSubscriptionQuery, [
+            $insertSubscriptionParams = [
                 ':userId' => $userId,
                 ':planType' => $planType,
                 ':amountPaid' => $amountPaid,
                 ':quotaGrantedWh' => $quotaGrantedWh,
                 ':endDate' => $endDate,
-                ':isActive' => $isActive
-            ]);
+                ':isActive' => $isActive,
+                ':transactionId' => $transactionId
+            ];
+            // error_log("DEBUG: user_subscriptions INSERT Query: " . $insertSubscriptionQuery); // Keep for further debugging if needed
+            // error_log("DEBUG: user_subscriptions INSERT Params: " . json_encode($insertSubscriptionParams)); // Keep for further debugging if needed
+            $this->db->execute($insertSubscriptionQuery, $insertSubscriptionParams);
+
 
             // Update client_profiles.daily_quota_wh
             $updateClientProfileQuery = "";
@@ -86,42 +91,48 @@ class SubscriptionController
                 $updateClientProfileQuery = "
                     INSERT INTO client_profiles (user_id, daily_quota_wh, updated_at)
                     VALUES (:userId, :quotaGrantedWh, NOW())
-                    ON DUPLICATE KEY UPDATE daily_quota_wh = :quotaGrantedWh, updated_at = NOW()
+                    ON DUPLICATE KEY UPDATE daily_quota_wh = :updateQuotaGrantedWh, updated_at = NOW()
                 ";
-                $this->db->execute($updateClientProfileQuery, [
+                $updateClientProfileParams = [
                     ':userId' => $userId,
-                    ':quotaGrantedWh' => $quotaGrantedWh
-                ]);
+                    ':quotaGrantedWh' => $quotaGrantedWh,
+                    ':updateQuotaGrantedWh' => $quotaGrantedWh // IMPORTANT: New parameter for the UPDATE clause
+                ];
+                // error_log("DEBUG: client_profiles INSERT/UPDATE (monthly) Query: " . $updateClientProfileQuery); // Keep for further debugging if needed
+                // error_log("DEBUG: client_profiles INSERT/UPDATE (monthly) Params: " . json_encode($updateClientProfileParams)); // Keep for further debugging if needed
+                $this->db->execute($updateClientProfileQuery, $updateClientProfileParams);
 
-                // Also, reset their daily consumption for a fresh start with new subscription
-                // This assumes consumption_logs stores daily_consumption_wh for the current day.
-                // It's better to update the current day's log entry or ensure it's reset by a daily cron.
-                // For now, we'll zero out the current day's log entry if it exists.
-                $this->db->execute("UPDATE consumption_logs SET daily_consumption_wh = 0 WHERE user_id = :userId AND DATE(timestamp) = CURDATE()", [':userId' => $userId]);
+                // Reset their daily consumption for a fresh start with new subscription
+                $resetConsumptionQuery = "UPDATE consumption_logs SET daily_consumption_wh = 0 WHERE user_id = :userId AND DATE(timestamp) = CURDATE()";
+                $resetConsumptionParams = [':userId' => $userId];
+                // error_log("DEBUG: consumption_logs UPDATE (monthly) Query: " . $resetConsumptionQuery); // Keep for further debugging if needed
+                // error_log("DEBUG: consumption_logs UPDATE (monthly) Params: " . json_encode($resetConsumptionParams)); // Keep for further debugging if needed
+                $this->db->execute($resetConsumptionQuery, $resetConsumptionParams);
             } elseif ($planType === 'daily_top_up') {
                 // For a top-up, add to their current daily quota
                 $updateClientProfileQuery = "
                     INSERT INTO client_profiles (user_id, daily_quota_wh, updated_at)
                     VALUES (:userId, :quotaGrantedWh, NOW())
-                    ON DUPLICATE KEY UPDATE daily_quota_wh = daily_quota_wh + :quotaGrantedWh, updated_at = NOW()
+                    ON DUPLICATE KEY UPDATE daily_quota_wh = daily_quota_wh + :updateQuotaGrantedWh, updated_at = NOW()
                 ";
-                $this->db->execute($updateClientProfileQuery, [
+                $updateClientProfileParams = [
                     ':userId' => $userId,
-                    ':quotaGrantedWh' => $quotaGrantedWh
-                ]);
+                    ':quotaGrantedWh' => $quotaGrantedWh,
+                    ':updateQuotaGrantedWh' => $quotaGrantedWh // IMPORTANT: New parameter for the UPDATE clause
+                ];
+                // error_log("DEBUG: client_profiles INSERT/UPDATE (top-up) Query: " . $updateClientProfileQuery); // Keep for further debugging if needed
+                // error_log("DEBUG: client_profiles INSERT/UPDATE (top-up) Params: " . json_encode($updateClientProfileParams)); // Keep for further debugging if needed
+                $this->db->execute($updateClientProfileQuery, $updateClientProfileParams);
             }
 
-            // Use DB class method for commit
             $this->db->commit();
 
             $this->sendJsonResponse('success', 'Subscription processed successfully.', 200);
         } catch (PDOException $e) {
-            // Use DB class method for rollback
             $this->db->rollBack();
             error_log('Subscription processing database error: ' . $e->getMessage());
             $this->sendJsonResponse('error', 'Database operation failed: ' . $e->getMessage(), 500);
         } catch (\Exception $e) {
-            // Use DB class method for rollback
             $this->db->rollBack();
             error_log('Subscription processing general error: ' . $e->getMessage());
             $this->sendJsonResponse('error', 'Server error processing subscription.', 500);
