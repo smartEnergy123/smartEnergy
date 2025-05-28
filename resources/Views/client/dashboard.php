@@ -374,7 +374,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
             function updateApplianceUI(applianceId, newState) {
                 const label = document.querySelector(`label[for="toggle-${applianceId}"] .toggle-label`);
                 const statusTextSpan = document.getElementById(`status-${applianceId}`);
-                const checkbox = document.getElementById(`toggle-${appliance.id}`);
+                const checkbox = document.getElementById(`toggle-${applianceId}`); // Corrected ID
 
                 if (checkbox) { // Ensure checkbox exists before trying to update it
                     checkbox.checked = newState; // Ensure checkbox reflects the state
@@ -667,6 +667,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
             async function fetchDashboardData() {
                 try {
                     const response = await fetch(`/smartEnergy/api/user/dashboard-data?userId=${userId}`);
+
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -676,7 +677,9 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                     if (result.status === 'success' && result.data) {
                         const data = result.data;
 
-                        hasActiveSubscription = data.hasActiveSubscription; // Update global flag
+                        // CORRECTED: Determine hasActiveSubscription based on dailyQuotaWh > 0,
+                        // as the backend provides dailyQuotaWh, not a separate hasActiveSubscription flag.
+                        hasActiveSubscription = data.dailyQuotaWh > 0; // Updated logic
 
                         if (!hasActiveSubscription) {
                             console.log("No active subscription detected. Showing subscribe modal.");

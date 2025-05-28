@@ -19,7 +19,7 @@ class SubscriptionController
         }
     }
 
-    // Helper function to send JSON responses (ensure this is consistent across your controller)
+    // Helper function to send JSON responses
     private function sendJsonResponse($status, $message, $statusCode = 200, $data = [])
     {
         header('Content-Type: application/json');
@@ -100,6 +100,7 @@ class SubscriptionController
                 ];
                 // error_log("DEBUG: client_profiles INSERT/UPDATE (monthly) Query: " . $updateClientProfileQuery); // Keep for further debugging if needed
                 // error_log("DEBUG: client_profiles INSERT/UPDATE (monthly) Params: " . json_encode($updateClientProfileParams)); // Keep for further debugging if needed
+
                 $this->db->execute($updateClientProfileQuery, $updateClientProfileParams);
 
                 // Reset their daily consumption for a fresh start with new subscription
