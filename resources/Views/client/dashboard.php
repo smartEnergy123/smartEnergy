@@ -143,10 +143,12 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                 or wait until tomorrow for your new daily allocation.
             </p>
             <div class="flex justify-center space-x-4">
-                <button id="subscribeBtn"
-                    class="bg-green-500 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-green-600 transition">
-                    Subscribe Now
-                </button>
+                <a href="/smartEnergy/client/make-subscription">
+                    <button id="subscribeBtn"
+                        class="bg-green-500 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-green-600 transition">
+                        Subscribe Now
+                    </button>
+                </a>
                 <button id="cancelBtn"
                     class="bg-gray-300 text-gray-800 px-6 py-3 rounded-lg text-lg font-semibold hover:bg-gray-400 transition">
                     Wait Until Tomorrow
