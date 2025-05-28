@@ -624,6 +624,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                             // Optionally, re-render appliances to ensure they are clickable again
                             // renderAppliances(); // This might be too heavy, just ensure pointer-events are reset
                         }
+
                     }
                 } else { // No active subscription
                     quotaStatusSpan.textContent = 'No active subscription.';
