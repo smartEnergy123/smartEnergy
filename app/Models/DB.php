@@ -49,7 +49,7 @@ class DB
             error_log("DB Connection Failed: " . $e->getMessage());
 
             // Instead of echoing, which can break JSON responses,
-            // we will let the exception propagate or handle it in a way
+            // let the exception propagate or handle it in a way
             // that doesn't interfere with API output.
             // Since ApplianceController's constructor checks $this->db->connection(),
             // it will catch this failure and send a proper JSON error.
