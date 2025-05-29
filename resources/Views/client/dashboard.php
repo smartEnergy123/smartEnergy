@@ -593,6 +593,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
              * This function simulates accumulation for display purposes; actual accumulation
              * should be handled persistently on the backend.
              */
+
             function updateDailyConsumptionSimulation() {
                 // Only accumulate if there's an active subscription AND quota is NOT exceeded
                 if (hasActiveSubscription && (!appliancesStoppedDueToQuota || userDailyConsumptionWh < userDailyQuotaWh)) {
