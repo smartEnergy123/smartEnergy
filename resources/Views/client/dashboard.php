@@ -297,6 +297,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
             let appliancesStoppedDueToQuota = false;
             let hasActiveSubscription = false; // NEW: Flag for overall subscription status
             let pleaseSubscribeModalShown = false; // NEW: Flag for "Please Subscribe" modal
+            let openAppliance = false;
 
             // --- DOM Elements ---
             const applianceGrid = document.getElementById("applianceGrid");
@@ -336,9 +337,13 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                 appliances.forEach(appliance => {
                     const applianceCard = document.createElement("div");
                     // Add a class to disable pointer events if no active subscription
-                    applianceCard.className = `bg-gray-50 rounded-lg p-4 shadow flex flex-col items-center
+                    if (hasActiveSubscription === false) {
+                        applianceCard.className = `bg-gray-50 rounded-lg p-4 shadow flex flex-col items-center`;
+                    } else {
+                        applianceCard.className = `bg-gray-50 rounded-lg p-4 shadow flex flex-col items-center
                                                ${!hasActiveSubscription ? 'opacity-50 pointer-events-none' : ''}`;
-
+                    }
+                    console.log("+++++ Sub ++++", hasActiveSubscription);
                     applianceCard.innerHTML = `
                            <span class="text-4xl mb-2">${appliance.icon}</span>
                            <h4 class="text-md font-semibold text-gray-800 text-center">${appliance.name}</h4>
@@ -544,6 +549,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                     }
                 }
                 userCurrentConsumptionSpan.textContent = userCurrentTotalConsumptionW; // Update dashboard display
+                // hasActiveSubscription = false;
                 console.log("All appliances stopped. Total consumption is now:", userCurrentTotalConsumptionW, "W");
             }
 
@@ -562,8 +568,10 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
              * Hides the quota exceeded modal.
              */
             function hideQuotaModal() {
-                quotaModalOverlay.classList.add('hidden');
+                // quotaModalOverlay.classList.add('hidden');
+                quotaModalOverlay.style.display = 'none';
                 quotaExceededModalShown = false;
+                hasActiveSubscription = false;
                 console.log("Quota Exceeded Modal Hidden.");
             }
 
@@ -787,9 +795,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
             // NEW: Event listener for "Go to Subscription Plans" button
             goToSubscriptionBtn.addEventListener('click', () => {
                 console.log("Go to Subscription Plans button clicked!");
-                // TODO: Implement redirection to a dedicated subscription plans page
                 alert("Redirecting to subscription plans page");
-                // For now, just hide the modal
                 hidePleaseSubscribeModal();
             });
         });
