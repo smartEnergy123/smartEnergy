@@ -41,6 +41,8 @@ class SubscriptionController
         $input = json_decode(file_get_contents('php://input'), true);
 
         $userId = $input['userId'] ?? null;
+        $username = $input['userName'] ?? null;
+        $userEmail = $input['userEmail'] ?? null;
         $planType = $input['planType'] ?? null; // e.g., 'monthly_standard', 'daily_top_up'
         $amountPaid = $input['amountPaid'] ?? null;
         $quotaGrantedWh = $input['quotaGrantedWh'] ?? null;
@@ -89,12 +91,14 @@ class SubscriptionController
             if ($planType === 'monthly_standard') {
                 // For a monthly subscription, set their base daily quota
                 $updateClientProfileQuery = "
-                    INSERT INTO client_profiles (user_id, daily_quota_wh, updated_at)
-                    VALUES (:userId, :quotaGrantedWh, NOW())
+                    INSERT INTO client_profiles (user_id,email, display_username, daily_quota_wh, updated_at)
+                    VALUES (:userId, :userEmail, :username, :quotaGrantedWh, NOW())
                     ON DUPLICATE KEY UPDATE daily_quota_wh = :updateQuotaGrantedWh, updated_at = NOW()
                 ";
                 $updateClientProfileParams = [
                     ':userId' => $userId,
+                    ':userEmail' => $userEmail,
+                    ':username' => $username,
                     ':quotaGrantedWh' => $quotaGrantedWh,
                     ':updateQuotaGrantedWh' => $quotaGrantedWh // IMPORTANT: New parameter for the UPDATE clause
                 ];

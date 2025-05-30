@@ -234,8 +234,8 @@ switch ($request_path) {
         // NEW API ROUTE: For processing subscriptions, now handled by SubscriptionController
     case '/smartEnergy/api/process-subscription':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            require_once dirname(__DIR__) . '/app/Http/Controllers/SubscriptionController.php'; // Ensure the file is included
-            $controller = new SubscriptionController(); // Use the new controller
+            require_once dirname(__DIR__) . '/app/Http/Controllers/SubscriptionController.php';
+            $controller = new SubscriptionController();
             $controller->processSubscription();
         } else {
             http_response_code(405);

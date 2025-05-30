@@ -6,8 +6,13 @@ if (!isset($_SESSION['user_state'])) {
     exit;
 }
 
+// echo '<pre>';
+// print_r($_SESSION['user_data']);
+// echo '</pre>';
+
 $userId = $_SESSION['user_data']['id'] ?? 'user_unknown';
 $username = $_SESSION['user_data']['username'] ?? 'User';
+$username = $_SESSION['user_data']['email'] ?? 'User_Email';
 ?>
 
 <!DOCTYPE html>
@@ -154,6 +159,8 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const userId = "<?php echo $userId; ?>"; // Get userId from PHP session
+            const userEmail = "<?php echo $email; ?>";
+            const username = "<?php echo $username; ?>";
 
             const planSelectionSection = document.getElementById('planSelection');
             const paymentFormSection = document.getElementById('paymentFormSection');
@@ -252,6 +259,8 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                         },
                         body: JSON.stringify({
                             userId: userId,
+                            userName: username,
+                            userEmail: userEmail,
                             planType: paymentPlanTypeInput.value,
                             amountPaid: parseFloat(paymentAmountPaidInput.value),
                             quotaGrantedWh: parseInt(paymentQuotaGrantedWhInput.value),
