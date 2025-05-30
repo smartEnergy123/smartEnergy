@@ -133,8 +133,9 @@ class ApplianceController
     {
         try {
             // Assuming current_cost_rate is in simulation_config with id=1
-            $query = "SELECT current_cost_rate FROM simulation_config WHERE id = 1";
-            $result = $this->db->fetchSingleData($query);
+            $query = "SELECT current_cost_rate FROM simulation_config WHERE id = :id";
+            $params = [':id' => 1];
+            $result = $this->db->fetchSingleData($query, $params);
 
             if ($result && isset($result['current_cost_rate'])) {
                 $this->sendJsonResponse('success', 'Cost rate fetched.', 200, ['costRate' => $result['current_cost_rate']]);

@@ -657,8 +657,9 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     const data = await response.json();
-                    const currentRate = data.costRate; // e.g., 'Low', 'Standard', 'High'
+                    const currentRate = data.data.costRate; // e.g., 'Low', 'Standard', 'High'
 
+                    console.log("++++Current Rate++++", currentRate);
                     currentCostRateDisplaySpan.textContent = currentRate;
                     // Apply color based on the rate
                     if (currentRate === 'Low') currentCostRateDisplaySpan.className = 'font-semibold text-green-600';
