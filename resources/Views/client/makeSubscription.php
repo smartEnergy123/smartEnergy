@@ -12,7 +12,8 @@ if (!isset($_SESSION['user_state'])) {
 
 $userId = $_SESSION['user_data']['id'] ?? 'user_unknown';
 $username = $_SESSION['user_data']['username'] ?? 'User';
-$username = $_SESSION['user_data']['email'] ?? 'User_Email';
+$email = $_SESSION['user_data']['email'] ?? 'User_Email';
+
 ?>
 
 <!DOCTYPE html>

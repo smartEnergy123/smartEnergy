@@ -143,4 +143,25 @@ class SubscriptionController
             $this->sendJsonResponse('error', 'Server error processing subscription.', 500);
         }
     }
+
+    // GET USER SUBSCRIPTION DATA
+
+    public function getUserSubscriptionData($userId)
+    {
+        try {
+            $query = "SELECT * FROM user_subscriptions WHERE user_id = :userId ORDER BY start_date DESC";
+            $params = [
+                ':userId' => $userId
+            ];
+
+            $userSubData = $this->db->fetchAllData($query, $params);
+            if (!empty($userSubData)) {
+                return $userSubData;
+            }
+        } catch (PDOException $error) {
+            echo "Failed to fetch the user subscription data!" . $error->getMessage();
+        }
+
+        return "No data found!";
+    }
 }

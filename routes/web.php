@@ -61,6 +61,9 @@ switch ($request_path) {
     case '/smartEnergy/processAuth':
         require dirname(__DIR__) . '/resources/Views/processAuth.php';
         break;
+    case '/smartEnergy/contact':
+        require dirname(__DIR__) . '/resources/Views/contact.php';
+        break;
 
     // CLIENT
     case '/smartEnergy/client/dashboard/': // Removed trailing slash for consistency
@@ -76,6 +79,13 @@ switch ($request_path) {
             exit;
         }
         require dirname(__DIR__) . '/resources/Views/client/makeSubscription.php';
+        break;
+    case '/smartEnergy/client/view-subcription-history': // Route for the user subscription History
+        if (!isset($_SESSION['user_state'])) {
+            header('Location: /smartEnergy/login');
+            exit;
+        }
+        require dirname(__DIR__) . '/resources/Views/client/viewSubcriptionHistory.php';
         break;
 
     // ADMIN

@@ -1,6 +1,6 @@
 <?php
 
-if (!isset($_SESSION['user_state'])) {
+if (!isset($_SESSION['user_state']) && $_SESSION['user_data']['user_type'] !== 'admin') {
     header('Location: /smartEnergy/login');
     exit;
 }
@@ -50,10 +50,8 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
         <nav class="p-4 space-y-4">
             <a href="#" class="block text-gray-700 hover:text-green-600">📈 View Power Consumption</a>
             <a href="/smartEnergy/client/make-subscription" class="block text-gray-700 hover:text-green-600">💳 Make Payment</a>
-            <a href="#" class="block text-gray-700 hover:text-green-600">📃 View Payment Plans</a>
-            <a href="#" class="block text-gray-700 hover:text-green-600">📊 View Data</a>
-            <a href="#" class="block text-gray-700 hover:text-green-600">📅 Subscription History</a>
-            <a href="#" class="block text-gray-700 hover:text-green-600">📞 Contact Support</a>
+            <a href="/smartEnergy/client/view-subcription-history" class="block text-gray-700 hover:text-green-600">📅 Subscription History</a>
+            <a href="/smartEnergy/contact" class="block text-gray-700 hover:text-green-600">📞 Contact Support</a>
         </nav>
     </div>
 
@@ -125,8 +123,10 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                         (Free Daily Allocation)</span></p>
                 <p class="text-gray-600 mt-2">Excess consumption beyond your daily quota is charged at the current
                     dynamic rate.</p>
-                <button class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">View
-                    Subscription Plans</button>
+                <a href="/smartEnergy/client/make-subscription">
+                    <button class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">View
+                        Subscription Plans</button>
+                </a>
             </div>
 
         </main>
