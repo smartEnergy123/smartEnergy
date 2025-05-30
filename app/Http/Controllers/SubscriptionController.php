@@ -145,7 +145,6 @@ class SubscriptionController
     }
 
     // GET USER SUBSCRIPTION DATA
-
     public function getUserSubscriptionData($userId)
     {
         try {

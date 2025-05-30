@@ -664,4 +664,25 @@ class ApplianceController
             $this->sendJsonResponse('error', 'Server error fetching simulation state.', 500);
         }
     }
+
+
+    // GET USER CONSUMPTION DATA
+    public function getUserConsumptionData($userId)
+    {
+        try {
+            $query = "SELECT * FROM consumption_logs WHERE user_id = :userId ORDER BY timestamp DESC";
+            $params = [
+                ':userId' => $userId
+            ];
+
+            $userSubData = $this->db->fetchAllData($query, $params);
+            if (!empty($userSubData)) {
+                return $userSubData;
+            }
+        } catch (PDOException $error) {
+            echo "Failed to fetch the user subscription data!" . $error->getMessage();
+        }
+
+        return "No data found!";
+    }
 }

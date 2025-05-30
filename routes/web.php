@@ -87,6 +87,13 @@ switch ($request_path) {
         }
         require dirname(__DIR__) . '/resources/Views/client/viewSubcriptionHistory.php';
         break;
+    case '/smartEnergy/client/view-consumption-data': // Route for the user consumption log
+        if (!isset($_SESSION['user_state'])) {
+            header('Location: /smartEnergy/login');
+            exit;
+        }
+        require dirname(__DIR__) . '/resources/Views/client/viewConsumptionData.php';
+        break;
 
     // ADMIN
     case '/smartEnergy/admin/dashboard/': // Removed trailing slash for consistency

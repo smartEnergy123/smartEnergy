@@ -48,7 +48,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
             <button class="md:hidden text-gray-600" onclick="toggleSidebar()">✖</button>
         </div>
         <nav class="p-4 space-y-4">
-            <a href="#" class="block text-gray-700 hover:text-green-600">📈 View Power Consumption</a>
+            <a href="/smartEnergy/client/view-consumption-data" class="block text-gray-700 hover:text-green-600">📈 View Power Consumption</a>
             <a href="/smartEnergy/client/make-subscription" class="block text-gray-700 hover:text-green-600">💳 Make Payment</a>
             <a href="/smartEnergy/client/view-subcription-history" class="block text-gray-700 hover:text-green-600">📅 Subscription History</a>
             <a href="/smartEnergy/contact" class="block text-gray-700 hover:text-green-600">📞 Contact Support</a>
@@ -185,7 +185,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
             const appliances = [{
                     id: 'fridge',
                     name: 'Refrigerator',
-                    wattage: 150,
+                    wattage: 1500,
                     icon: '🧊'
                 }, // Running wattage (compressor cycles) - average
                 {
