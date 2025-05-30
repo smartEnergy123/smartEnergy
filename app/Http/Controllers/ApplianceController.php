@@ -618,6 +618,7 @@ class ApplianceController
         }
     }
 
+
     /**
      * NEW METHOD: Fetches the current state of a specific simulation run.
      * Expects GET request with 'simulationId' in query parameters.

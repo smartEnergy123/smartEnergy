@@ -6,7 +6,8 @@
 
 use Dotenv\Dotenv;
 use App\Http\Controllers\ApplianceController;
-use App\Http\Controllers\SubscriptionController; // NEW: Import the new SubscriptionController
+use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\UserController; // NEW: Import the UserController
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -15,10 +16,33 @@ if (!getenv('DB_NAME')) {
     $dotenv->load();
 }
 
-// --- CRITICAL CHANGE HERE: Parse the URL to get only the path part ---
+// --- Initialize request variables ---
 // This ensures that query strings (like ?userId=...) do not prevent route matching.
 $request_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$requestMethod = $_SERVER['REQUEST_METHOD'];
 
+// Start session if not already started
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// --- Handle dynamic routes first to avoid conflicts with static routes ---
+// This must come BEFORE the switch statement.
+// Handle dynamic routes for user details (e.g., /smartEnergy/api/admin/users/123)
+// It's a simple regex match for a numeric ID, including the /smartEnergy/ base path.
+if (preg_match('/^\/smartEnergy\/api\/admin\/users\/(\d+)$/', $request_path, $matches)) {
+    $userId = $matches[1];
+    $controller = new UserController(); // Use the imported class
+    if ($requestMethod === 'GET') {
+        $controller->getUserDetails($userId); // Pass the extracted user ID
+    } else {
+        http_response_code(405);
+        echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+    }
+    exit; // Stop execution after handling dynamic route
+}
+
+// --- Main Switch for Static Routes and other API Endpoints ---
 switch ($request_path) {
     // --- Existing Web Routes ---
     case '/smartEnergy/': // Matches /smartEnergy/
@@ -26,7 +50,7 @@ switch ($request_path) {
         require dirname(__DIR__) . '/resources/Views/landing.php';
         break;
     case '/smartEnergy/login':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($requestMethod === 'POST') {
             $input = file_get_contents('php://input');
             $data = json_decode($input, true);
 
@@ -66,7 +90,7 @@ switch ($request_path) {
         break;
 
     // CLIENT
-    case '/smartEnergy/client/dashboard/': // Removed trailing slash for consistency
+    case '/smartEnergy/client/dashboard':
         if (!isset($_SESSION['user_state'])) {
             header('Location: /smartEnergy/login');
             exit;
@@ -96,42 +120,79 @@ switch ($request_path) {
         break;
 
     // ADMIN
-    case '/smartEnergy/admin/dashboard/': // Removed trailing slash for consistency
+    case '/smartEnergy/admin/dashboard/':
         if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
             header('Location: /smartEnergy/login');
             exit;
         }
         require dirname(__DIR__) . '/resources/Views/admin/dashboard.php';
         break;
-    case '/smartEnergy/admin/viewPowerStats':
+
+    case '/smartEnergy/admin/view-power-stats':
         if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
             header('Location: /smartEnergy/login');
             exit;
         }
-        require dirname(__DIR__) . '/resources/Views/admin/viewPowerStats.php'; // Assuming this is the correct path
+        require dirname(__DIR__) . '/resources/Views/admin/PowerStats.php';
         break;
+
     case '/smartEnergy/admin/simulateWeather':
         require dirname(__DIR__) . '/resources/Views/admin/simulateWeather.php';
         break;
+
     case '/smartEnergy/logout':
         session_unset();
         session_destroy();
         header('Location: /smartEnergy/login');
         exit;
 
-        // --- API Routes ---
+        // --- NEW: Admin User Management API Routes (Static) ---
+    case '/smartEnergy/admin/manage-users':
+        require dirname(__DIR__) . '/resources/Views/admin/manageUsers.php';
+        break;
+    case '/smartEnergy/api/admin/users': // GET: List all client users (with optional search)
+        $controller = new UserController();
+        if ($requestMethod === 'GET') {
+            $controller->listClientUsers();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        break;
+
+    case '/smartEnergy/api/admin/users/update': // POST: Update a user
+        $controller = new UserController();
+        if ($requestMethod === 'POST') {
+            $controller->updateUser();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        break;
+
+    case '/smartEnergy/api/admin/users/delete': // POST: Delete a user
+        $controller = new UserController();
+        if ($requestMethod === 'POST') {
+            $controller->deleteUser();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        break;
+
+    // --- Other API Routes (ApplianceController related) ---
     case '/smartEnergy/api/appliance/toggle':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($requestMethod === 'POST') {
             $controller = new ApplianceController();
             $controller->toggle();
         } else {
-            http_response_code(405); // Method Not Allowed
+            http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
         exit;
 
     case '/smartEnergy/api/consumption/current':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($requestMethod === 'POST') {
             $controller = new ApplianceController();
             $controller->currentConsumption();
         } else {
@@ -141,7 +202,7 @@ switch ($request_path) {
         exit;
 
     case '/smartEnergy/api/simulation/costRate':
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if ($requestMethod === 'GET') {
             $controller = new ApplianceController();
             $controller->getCostRate();
         } else {
@@ -151,7 +212,7 @@ switch ($request_path) {
         exit;
 
     case '/smartEnergy/api/user/dashboard-data':
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if ($requestMethod === 'GET') {
             $controller = new ApplianceController();
             $controller->dashboardData();
         } else {
@@ -160,10 +221,10 @@ switch ($request_path) {
         }
         exit;
 
-        // --- NEW ADMIN API ROUTES ---
+        // --- Admin API Routes (ApplianceController related) ---
     case '/smartEnergy/api/admin/set-simulation-config':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $controller = new ApplianceController(); // Or a dedicated AdminController
+        if ($requestMethod === 'POST') {
+            $controller = new ApplianceController();
             $controller->setSimulationConfig();
         } else {
             http_response_code(405);
@@ -171,8 +232,8 @@ switch ($request_path) {
         }
         exit;
 
-    case '/smartEnergy/api/admin/set-cost-rate': // Explicit route for setting cost rate
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    case '/smartEnergy/api/admin/set-cost-rate':
+        if ($requestMethod === 'POST') {
             $controller = new ApplianceController();
             $controller->setCostRate();
         } else {
@@ -181,77 +242,60 @@ switch ($request_path) {
         }
         exit;
 
-    case '/smartEnergy/api/admin/get-simulation-config': // NEW: Route to fetch admin config
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    case '/smartEnergy/api/admin/get-simulation-config':
+        if ($requestMethod === 'GET') {
             $controller = new ApplianceController();
-            $controller->getSimulationConfig(); // New method to implement
+            $controller->getSimulationConfig();
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
         exit;
 
-        // --- NEW ROUTE TO FETCH LAST SIMULATION STATE ---
+        // --- Simulation API Routes (ApplianceController related) ---
     case '/smartEnergy/api/simulation/get-state':
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if ($requestMethod === 'GET') {
             $controller = new ApplianceController();
-            // This method needs to be implemented in ApplianceController
-            // For now, it will return a 501 Not Implemented
-            http_response_code(501);
-            echo json_encode(['status' => 'error', 'message' => 'API route not implemented: /smartEnergy/api/simulation/get-state']);
+            $controller->getSimulationState();
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
-        exit; // Important: stop execution after API response
+        exit;
 
-
-        // --- NEW ROUTE TO START A NEW SIMULATION RUN ---
     case '/smartEnergy/api/simulation/start-new-run':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($requestMethod === 'POST') {
             $controller = new ApplianceController();
-            // This method needs to be implemented in ApplianceController
-            // For now, it will return a 501 Not Implemented
-            http_response_code(501);
-            echo json_encode(['status' => 'error', 'message' => 'API route not implemented: /smartEnergy/api/simulation/start-new-run']);
+            $controller->startNewSimulationRun();
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
-        exit; // Stop execution after API response
+        exit;
 
-        // --- NEW ROUTE FOR AUTOMATIC SIMULATION DATA UPDATES ---
     case '/smartEnergy/api/simulation/update-data':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $controller = new ApplianceController(); // Instantiate controller inside the block
-            // This method needs to be implemented in ApplianceController
-            // For now, it will return a 501 Not Implemented
-            http_response_code(501);
-            echo json_encode(['status' => 'error', 'message' => 'API route not implemented: /smartEnergy/api/simulation/update-data']);
-        } else {
-            http_response_code(405);
-            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
-        }
-        exit; // Stop execution after API response
-
-        // --- NEW ROUTE TO GET DAILY SIMULATION SUMMARY ---
-    case '/smartEnergy/api/simulation/get-daily-summary':
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if ($requestMethod === 'POST') {
             $controller = new ApplianceController();
-            // This method needs to be implemented in ApplianceController
-            // For now, it will return a 501 Not Implemented
-            http_response_code(501);
-            echo json_encode(['status' => 'error', 'message' => 'API route not implemented: /smartEnergy/api/simulation/get-daily-summary']);
+            $controller->updateSimulationData();
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
-        exit; // Stop execution after API response
+        exit;
+
+    case '/smartEnergy/api/simulation/get-daily-summary':
+        if ($requestMethod === 'GET') {
+            $controller = new ApplianceController();
+            $controller->getDailySimulationSummary();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit;
 
         // NEW API ROUTE: For processing subscriptions, now handled by SubscriptionController
     case '/smartEnergy/api/process-subscription':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            require_once dirname(__DIR__) . '/app/Http/Controllers/SubscriptionController.php';
+        if ($requestMethod === 'POST') {
             $controller = new SubscriptionController();
             $controller->processSubscription();
         } else {

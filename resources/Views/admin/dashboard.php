@@ -71,8 +71,8 @@ if (!getenv('WEATHER_API_KEY')) {
             <h2 class="text-2xl font-bold mb-6">Admin Panel</h2>
             <nav class="space-y-4">
                 <a href="#" class="block hover:bg-blue-700 p-2 rounded">Dashboard</a>
-                <a href="#" class="block hover:bg-blue-700 p-2 rounded">Manage Users</a>
-                <a href="/smartEnergy/admin/viewPowerStats" class="block hover:bg-blue-700 p-2 rounded">View Power Stats</a>
+                <a href="/smartEnergy/admin/manage-users" class="block hover:bg-blue-700 p-2 rounded">Manage Users</a>
+                <a href="/smartEnergy/admin/view-power-stats" class="block hover:bg-blue-700 p-2 rounded">View Power Stats</a>
                 <a href="#" class="block hover:bg-blue-700 p-2 rounded">Reports</a>
                 <a href="/smartEnergy/logout" class="block p-2">
                     <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-200 transition">Logout</button>
@@ -571,7 +571,7 @@ if (!getenv('WEATHER_API_KEY')) {
                 const result = await response.json();
 
                 if (result.status === 'success' && result.data) {
-                    const data = result.data;
+                    const data = result.data.data;
                     const hours = Math.floor(data.simulated_minutes / 60);
                     const minutes = data.simulated_minutes % 60;
                     const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
@@ -652,7 +652,7 @@ if (!getenv('WEATHER_API_KEY')) {
 
                     console.log("Admin config fetched:", data);
                 } else {
-                    console.warn("Failed to fetch admin config or data incomplete:", data.message);
+                    console.log("Admin config or data completely:", data.message);
                 }
             } catch (error) {
                 console.error("Error fetching admin config:", error);
@@ -825,8 +825,8 @@ if (!getenv('WEATHER_API_KEY')) {
                     });
                     const result = await response.json();
 
-                    if (result.status === 'success' && result.simulationId) {
-                        currentSimulationId = result.simulationId;
+                    if (result.status === 'success' && result.data.simulationId) {
+                        currentSimulationId = result.data.simulationId;
                         console.log("New simulation run ID:", currentSimulationId);
                     } else {
                         console.error("Failed to get new simulation ID from backend:", result.message);
