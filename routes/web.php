@@ -7,7 +7,8 @@
 use Dotenv\Dotenv;
 use App\Http\Controllers\ApplianceController;
 use App\Http\Controllers\SubscriptionController;
-use App\Http\Controllers\UserController; // NEW: Import the UserController
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\ReportController; // NEW: Import the ReportController
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -32,14 +33,14 @@ if (session_status() == PHP_SESSION_NONE) {
 // It's a simple regex match for a numeric ID, including the /smartEnergy/ base path.
 if (preg_match('/^\/smartEnergy\/api\/admin\/users\/(\d+)$/', $request_path, $matches)) {
     $userId = $matches[1];
-    $controller = new UserController(); // Use the imported class
+    $controller = new UserController();
     if ($requestMethod === 'GET') {
-        $controller->getUserDetails($userId); // Pass the extracted user ID
+        $controller->getUserDetails($userId);
     } else {
         http_response_code(405);
         echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
     }
-    exit; // Stop execution after handling dynamic route
+    exit;
 }
 
 // --- Main Switch for Static Routes and other API Endpoints ---
@@ -57,21 +58,21 @@ switch ($request_path) {
             if (isset($data['username']) && isset($data['password'])) {
                 if ($data['username'] === 'admin' && $data['password'] === 'admin') {
                     $_SESSION['user_state'] = 'authenticated';
-                    $_SESSION['user_data'] = ['username' => 'admin', 'user_type' => 'admin', 'id' => 'admin_1']; // Consistent ID
+                    $_SESSION['user_data'] = ['username' => 'admin', 'user_type' => 'admin', 'id' => 'admin_1'];
                     echo json_encode(['status' => 'success', 'message' => 'Login successful.', 'redirect' => '/smartEnergy/admin/dashboard']);
                     exit;
                 } elseif ($data['username'] === 'user' && $data['password'] === 'user') {
                     $_SESSION['user_state'] = 'authenticated';
-                    $_SESSION['user_data'] = ['username' => 'user', 'user_type' => 'client', 'id' => 'client_1']; // Consistent ID
+                    $_SESSION['user_data'] = ['username' => 'user', 'user_type' => 'client', 'id' => 'client_1'];
                     echo json_encode(['status' => 'success', 'message' => 'Login successful.', 'redirect' => '/smartEnergy/client/dashboard']);
                     exit;
                 } else {
-                    http_response_code(401); // Unauthorized
+                    http_response_code(401);
                     echo json_encode(['status' => 'error', 'message' => 'Invalid credentials.']);
                     exit;
                 }
             } else {
-                http_response_code(400); // Bad Request
+                http_response_code(400);
                 echo json_encode(['status' => 'error', 'message' => 'Username and password are required.']);
                 exit;
             }
@@ -97,21 +98,21 @@ switch ($request_path) {
         }
         require dirname(__DIR__) . '/resources/Views/client/dashboard.php';
         break;
-    case '/smartEnergy/client/make-subscription': // Route for the subscription page
+    case '/smartEnergy/client/make-subscription':
         if (!isset($_SESSION['user_state'])) {
             header('Location: /smartEnergy/login');
             exit;
         }
         require dirname(__DIR__) . '/resources/Views/client/makeSubscription.php';
         break;
-    case '/smartEnergy/client/view-subcription-history': // Route for the user subscription History
+    case '/smartEnergy/client/view-subcription-history':
         if (!isset($_SESSION['user_state'])) {
             header('Location: /smartEnergy/login');
             exit;
         }
         require dirname(__DIR__) . '/resources/Views/client/viewSubcriptionHistory.php';
         break;
-    case '/smartEnergy/client/view-consumption-data': // Route for the user consumption log
+    case '/smartEnergy/client/view-consumption-data':
         if (!isset($_SESSION['user_state'])) {
             header('Location: /smartEnergy/login');
             exit;
@@ -137,7 +138,20 @@ switch ($request_path) {
         break;
 
     case '/smartEnergy/admin/simulateWeather':
+        if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
+            header('Location: /smartEnergy/login');
+            exit;
+        }
         require dirname(__DIR__) . '/resources/Views/admin/simulateWeather.php';
+        break;
+
+    // NEW ADMIN REPORT ROUTE
+    case '/smartEnergy/admin/reports':
+        if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
+            header('Location: /smartEnergy/login');
+            exit;
+        }
+        require dirname(__DIR__) . '/resources/Views/admin/report.php'; // Points to the new report file
         break;
 
     case '/smartEnergy/logout':
@@ -298,6 +312,27 @@ switch ($request_path) {
         if ($requestMethod === 'POST') {
             $controller = new SubscriptionController();
             $controller->processSubscription();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit;
+
+        // NEW API ROUTES for ReportController
+    case '/smartEnergy/api/admin/reports/daily-summary': // GET: Daily summaries
+        $controller = new ReportController();
+        if ($requestMethod === 'GET') {
+            $controller->getDailySummaries();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit;
+
+    case '/smartEnergy/api/admin/reports/simulation-state-history': // GET: Detailed simulation state history
+        $controller = new ReportController();
+        if ($requestMethod === 'GET') {
+            $controller->getSimulationStateHistory();
         } else {
             http_response_code(405);
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);

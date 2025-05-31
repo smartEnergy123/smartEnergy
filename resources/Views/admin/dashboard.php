@@ -70,7 +70,7 @@ if (!getenv('WEATHER_API_KEY')) {
         <aside id="sidebar" class="fixed md:relative transform -translate-x-full md:translate-x-0 transition-transform duration-300 w-64 bg-blue-800 text-white p-4 z-50">
             <h2 class="text-2xl font-bold mb-6">Admin Panel</h2>
             <nav class="space-y-4">
-                <a href="#" class="block hover:bg-blue-700 p-2 rounded">Dashboard</a>
+                <a href="/smartEnergy/admin/dashboard/" class="block hover:bg-blue-700 p-2 rounded">Dashboard</a>
                 <a href="/smartEnergy/admin/manage-users" class="block hover:bg-blue-700 p-2 rounded">Manage Users</a>
                 <a href="/smartEnergy/admin/view-power-stats" class="block hover:bg-blue-700 p-2 rounded">View Power Stats</a>
                 <a href="#" class="block hover:bg-blue-700 p-2 rounded">Reports</a>
@@ -111,7 +111,7 @@ if (!getenv('WEATHER_API_KEY')) {
                     </div>
                     <div>
                         <label for="numHouses" class="block text-sm font-medium text-gray-700">Number of Houses:</label>
-                        <input type="number" id="numHouses" value="20" min="1" class="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <input type="number" id="numHouses" value="4" min="1" class="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                     </div>
                     <div>
                         <label for="dailyQuota" class="block text-sm font-medium text-gray-700">Daily Quota Per House (Wh):</label>
