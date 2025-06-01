@@ -54,7 +54,7 @@ error_reporting(E_ALL);
     <div id="sidebar" class="w-64 bg-gray-800 text-white p-4 space-y-4 fixed h-full transition-transform duration-300 ease-in-out -translate-x-full md:translate-x-0">
         <div class="text-2xl font-bold text-center">SmartEnergy Admin</div>
         <nav>
-            <a href="/smartEnergy/admin/dashboard" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Dashboard</a>
+            <a href="/smartEnergy/admin/dashboard/" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Dashboard</a>
             <a href="/smartEnergy/admin/manage-users" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 bg-gray-700">Manage Users</a>
             <a href="/smartEnergy/logout" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Logout</a>
         </nav>

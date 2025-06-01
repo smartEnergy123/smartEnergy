@@ -13,6 +13,18 @@ require_once __DIR__ . "/../../../../vendor/autoload.php";
 
 class AuthController
 {
+    private $db;
+
+    public function __construct()
+    {
+
+        $this->db = new DB();
+
+        if (!$this->db->connection()) {
+            error_log("FATAL: Database connection failed in AuthController constructor.");
+        }
+    }
+
     public function login(string $email, string $password)
     {
         try {
@@ -90,6 +102,23 @@ class AuthController
         // Start the session if it's not already started.
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
+        }
+
+
+        $userId = $_SESSION['user_data']['id'] ?? null;
+
+        if ($userId) {
+            try {
+                $updateLogoutStatusQuery = "
+                UPDATE user_state
+                SET is_online = 0, logout_time = NOW()
+                WHERE user_id = :userId
+            ";
+                $this->db->execute($updateLogoutStatusQuery, [':userId' => $userId]);
+            } catch (PDOException $e) {
+                error_log('User logout status update failed: ' . $e->getMessage());
+                // Log error but don't prevent session destruction
+            }
         }
 
         session_unset(); // Unset all session variables.

@@ -3,10 +3,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DB;
 use PDO;
-use PDOException;
+use DateTime;
 use Exception;
+use PDOException;
+use App\Models\DB;
 
 class ReportController
 {
@@ -29,7 +30,7 @@ class ReportController
      * Helper method to send a consistent JSON response and terminate script execution.
      * Copied from ApplianceController for consistency.
      *
-     * @param string $status The status of the response (e.g., 'success', 'error').
+     * @param string $status The status of the raesponse (e.g., 'success', 'error').
      * @param string $message A human-readable message.
      * @param int $statusCode The HTTP status code (e.g., 200, 400, 500).
      * @param array $data Optional additional data to include in the response.
@@ -94,6 +95,7 @@ class ReportController
         }
     }
 
+
     /**
      * Fetches detailed simulation state history for a given date range.
      * This might return a large dataset, so consider pagination or stricter date limits for production.
@@ -110,7 +112,7 @@ class ReportController
             }
 
             // Basic date validation
-            if (!\DateTime::createFromFormat('Y-m-d', $startDate) || !\DateTime::createFromFormat('Y-m-d', $endDate)) {
+            if (!DateTime::createFromFormat('Y-m-d', $startDate) || !DateTime::createFromFormat('Y-m-d', $endDate)) {
                 $this->sendJsonResponse('error', 'Invalid date format. Use YYYY-MM-DD.', 400);
             }
 
@@ -145,6 +147,34 @@ class ReportController
         } catch (Exception $e) {
             error_log('General error in getSimulationStateHistory: ' . $e->getMessage());
             $this->sendJsonResponse('error', 'An unexpected error occurred.', 500);
+        }
+    }
+
+    /**
+     * Counts the number of users currently marked as online in the user_state table.
+     * An "online" user is defined as is_online = 1 and last_active_at within a recent threshold.
+     */
+    public function getOnlineUserCount()
+    {
+        try {
+            // Define what "recent activity" means (e.g., last 5 minutes)
+            $onlineThresholdMinutes = 5;
+            $query = "SELECT COUNT(user_id) as online_count FROM user_state WHERE is_online = 1 AND last_active_at >= (NOW() - INTERVAL :minutes MINUTE)";
+            $params = [':minutes' => $onlineThresholdMinutes];
+
+            $result = $this->db->fetchSingleData($query, $params);
+
+            if ($result && isset($result['online_count'])) {
+                $this->sendJsonResponse('success', 'Online user count fetched.', 200, ['onlineCount' => (int)$result['online_count']]);
+            } else {
+                $this->sendJsonResponse('success', 'No online users found.', 200, ['onlineCount' => 0]);
+            }
+        } catch (PDOException $e) {
+            error_log('Database error fetching online user count: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Database error fetching online user count.', 500);
+        } catch (Exception $e) {
+            error_log('General error fetching online user count: ' . $e->getMessage());
+            $this->sendJsonResponse('error', 'Server error fetching online user count.', 500);
         }
     }
 }

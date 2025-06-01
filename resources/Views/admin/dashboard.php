@@ -73,7 +73,7 @@ if (!getenv('WEATHER_API_KEY')) {
                 <a href="/smartEnergy/admin/dashboard/" class="block hover:bg-blue-700 p-2 rounded">Dashboard</a>
                 <a href="/smartEnergy/admin/manage-users" class="block hover:bg-blue-700 p-2 rounded">Manage Users</a>
                 <a href="/smartEnergy/admin/view-power-stats" class="block hover:bg-blue-700 p-2 rounded">View Power Stats</a>
-                <a href="#" class="block hover:bg-blue-700 p-2 rounded">Reports</a>
+                <a href="/smartEnergy/admin/reports" class="block hover:bg-blue-700 p-2 rounded">Reports</a>
                 <a href="/smartEnergy/logout" class="block p-2">
                     <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-200 transition">Logout</button>
                 </a>

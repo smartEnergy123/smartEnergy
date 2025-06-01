@@ -211,6 +211,23 @@ class ApplianceController
         }
 
         try {
+
+            // Update user_state to mark user as online and record activity
+            $updateOnlineStatusQuery = "
+            INSERT INTO user_state (user_id, is_online, last_active_at, login_time)
+            VALUES (:userId, 1, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+            is_online = 1,
+            last_active_at = NOW(),
+            login_time = IF(login_time IS NULL OR DATEDIFF(NOW(), login_time) > 0, NOW(), login_time)
+            ";
+            // The DATEDIFF check above for login_time is a simple way to update login_time only on a new day or if it's null,
+            // assuming a login_time persists until explicit logout or prolonged inactivity.
+            // Adjust logic if "login_time" should reset more frequently or if a dedicated login method updates it.
+
+            $this->db->execute($updateOnlineStatusQuery, [':userId' => $userId]);
+
+
             // 1. Fetch daily_quota_wh from client_profiles
             $quotaQuery = "SELECT daily_quota_wh FROM client_profiles WHERE user_id = :userId";
             $clientProfile = $this->db->fetchSingleData($quotaQuery, [':userId' => $userId]);
@@ -686,5 +703,31 @@ class ApplianceController
         }
 
         return "No data found!";
+    }
+
+
+    // GET ONLINE USERS TO GIVE POWER
+    public function getOnlineUserCount()
+    {
+        try {
+            $onlineThresholdMinutes = 5; // Define what "recent activity" means
+            $query = "SELECT COUNT(user_id) as online_count FROM user_state WHERE is_online = 1 AND last_active_at >= (NOW() - INTERVAL :minutes MINUTE)";
+            $params = [':minutes' => $onlineThresholdMinutes];
+
+            $result = $this->db->fetchSingleData($query, $params);
+
+            if ($result && isset($result['online_count'])) {
+                // This function would typically be called by your simulation backend
+                // You might return just the number or use sendJsonResponse if it's an API endpoint itself.
+                return (int)$result['online_count'];
+            }
+            return 0; // No online users
+        } catch (PDOException $e) {
+            error_log('Database error fetching online user count: ' . $e->getMessage());
+            return 0; // Handle error gracefully
+        } catch (Exception $e) {
+            error_log('General error fetching online user count: ' . $e->getMessage());
+            return 0; // Handle error gracefully
+        }
     }
 }

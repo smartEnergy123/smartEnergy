@@ -18,6 +18,11 @@ class DB
     private $dbname;
     private $conn; // This will hold the PDO connection object
 
+    public function closeConnection()
+    {
+        $this->conn = null;
+    }
+
     public function __construct()
     {
         // Load environment variables using Dotenv

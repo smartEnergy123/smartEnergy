@@ -1,11 +1,30 @@
 <?php
-
 if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
     header('Location: /smartEnergy/login');
     exit;
 }
 
+// Ensure GenerateDailySummary.php is included AFTER session_start()
+// This script will set $_SESSION['success'] or $_SESSION['error']
+require_once __DIR__ . '/../../../app/Scripts/GenerateDailySummary.php';
+
+
 $username = $_SESSION['user_data']['username'] ?? 'Admin';
+
+// Variables to hold the message and its type for display
+$message = null;
+$messageType = null;
+
+if (isset($_SESSION['success'])) {
+    $message = $_SESSION['success'];
+    $messageType = 'success';
+    unset($_SESSION['success']); // Clear the session variable after reading
+} elseif (isset($_SESSION['error'])) {
+    $message = $_SESSION['error'];
+    $messageType = 'error';
+    unset($_SESSION['error']); // Clear the session variable after reading
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -37,6 +56,37 @@ $username = $_SESSION['user_data']['username'] ?? 'Admin';
             background: #64748b;
             /* slate-500 */
         }
+
+        /* Styles for the message container */
+        .message-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 50;
+            /* Ensure it's above other content */
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: white;
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .message-container.success {
+            background-color: #4CAF50;
+            /* Green for success */
+        }
+
+        .message-container.error {
+            background-color: #f44336;
+            /* Red for error */
+        }
+
+        .message-container.hidden {
+            opacity: 0;
+            pointer-events: none;
+            /* Make it unclickable when hidden */
+        }
     </style>
 </head>
 
@@ -48,7 +98,7 @@ $username = $_SESSION['user_data']['username'] ?? 'Admin';
         </a>
 
         <nav>
-            <a href="/smartEnergy/admin/dashboard" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Dashboard</a>
+            <a href="/smartEnergy/admin/dashboard/" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Dashboard</a>
             <a href="/smartEnergy/admin/reports" class="block py-2.5 px-4 rounded transition duration-200 bg-gray-700 text-white font-semibold">Reports</a>
             <a href="/smartEnergy/admin/manage-users" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Manage Users</a>
             <a href="/smartEnergy/admin/view-power-stats" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">View Power Stats</a>
@@ -83,6 +133,12 @@ $username = $_SESSION['user_data']['username'] ?? 'Admin';
                 </div>
             </div>
         </header>
+
+        <?php if ($message): ?>
+            <div id="messageContainer" class="message-container <?php echo $messageType; ?>">
+                <p><?php echo htmlspecialchars($message); ?></p>
+            </div>
+        <?php endif; ?>
 
         <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 p-6">
             <div class="container mx-auto">
@@ -187,11 +243,23 @@ $username = $_SESSION['user_data']['username'] ?? 'Admin';
             const startDateInput = document.getElementById('startDate');
             const endDateInput = document.getElementById('endDate');
             const reportTableBody = document.getElementById('reportTableBody');
+            const messageContainer = document.getElementById('messageContainer'); // Get the message container
 
             // Initialize date inputs with today's date for convenience
             const today = new Date().toISOString().split('T')[0];
             startDateInput.value = today;
             endDateInput.value = today;
+
+            // Display and hide messages
+            if (messageContainer) {
+                // messageContainer is already visible because it's rendered by PHP
+                setTimeout(() => {
+                    messageContainer.classList.add('hidden');
+                    // Optionally remove the element from DOM after it's hidden to free up space/resources
+                    setTimeout(() => messageContainer.remove(), 500); // 500ms for transition
+                }, 10000); // Hide after 10 seconds
+            }
+
 
             // Fetch report data on button click
             fetchReportBtn.addEventListener('click', fetchReportData);
@@ -224,20 +292,6 @@ $username = $_SESSION['user_data']['username'] ?? 'Admin';
                     alert('An error occurred while fetching report data.');
                     reportTableBody.innerHTML = `<tr><td colspan="8" class="px-6 py-4 text-center text-red-500">Network error or API not available.</td></tr>`;
                 }
-
-                // // Optionally fetch detailed simulation state history if needed for very granular charts
-                // try {
-                //     const detailedResponse = await fetch(`/smartEnergy/api/admin/reports/simulation-state-history?startDate=${startDate}&endDate=${endDate}`);
-                //     const detailedResult = await detailedResponse.json();
-                //     if (detailedResult.status === 'success') {
-                //         // Use detailedResult.data.history for more granular charts if needed
-                //         console.log('Detailed simulation history:', detailedResult.data.history);
-                //     } else {
-                //         console.error('Error fetching detailed history:', detailedResult.message);
-                //     }
-                // } catch (error) {
-                //     console.error('Network or parsing error for detailed history:', error);
-                // }
             }
 
             function updateReportTable(summaries) {
@@ -251,13 +305,13 @@ $username = $_SESSION['user_data']['username'] ?? 'Admin';
                     const row = `
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${summary.report_date}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${summary.total_solar_generated_wh.toFixed(2)}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${summary.total_wind_generated_wh.toFixed(2)}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${summary.total_consumption_wh.toFixed(2)}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${summary.net_energy_balance_wh.toFixed(2)}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${summary.battery_level_end_wh.toFixed(2)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${parseFloat(summary.total_solar_generated_wh).toFixed(2)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${parseFloat(summary.total_wind_generated_wh).toFixed(2)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${parseFloat(summary.total_consumption_wh).toFixed(2)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${parseFloat(summary.net_energy_balance_wh).toFixed(2)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${parseFloat(summary.battery_level_end_wh).toFixed(2)}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm ${getClassificationColor(summary.day_classification)}">${summary.day_classification}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${summary.num_active_houses}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${parseInt(summary.num_active_houses)}</td>
                         </tr>
                     `;
                     reportTableBody.innerHTML += row;

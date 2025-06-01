@@ -91,7 +91,7 @@ switch ($request_path) {
         break;
 
     // CLIENT
-    case '/smartEnergy/client/dashboard':
+    case '/smartEnergy/client/dashboard/':
         if (!isset($_SESSION['user_state'])) {
             header('Location: /smartEnergy/login');
             exit;
@@ -155,12 +155,10 @@ switch ($request_path) {
         break;
 
     case '/smartEnergy/logout':
-        session_unset();
-        session_destroy();
-        header('Location: /smartEnergy/login');
-        exit;
+        require dirname(__DIR__) . '/resources/Views/logout.php'; // logout the user
+        break;
 
-        // --- NEW: Admin User Management API Routes (Static) ---
+    // --- NEW: Admin User Management API Routes (Static) ---
     case '/smartEnergy/admin/manage-users':
         require dirname(__DIR__) . '/resources/Views/admin/manageUsers.php';
         break;
@@ -338,6 +336,26 @@ switch ($request_path) {
             echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
         }
         exit;
+
+        // NEW API ROUTES for ReportController
+    case '/smartEnergy/api/admin/reports/online-users': // GET: Count of online users
+        $controller = new \App\Http\Controllers\ReportController(); // Ensure correct namespace
+        if ($requestMethod === 'GET') {
+            $controller->getOnlineUserCount();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit;
+
+
+        // IMPORTANT: PROTECT THIS ROUTE! Only allow admin access or a secret key.
+        // This is just conceptual, actual routing depends on your framework/setup.
+        if (isset($_GET['action']) && $_GET['action'] === 'generate_daily_summary' && isset($_GET['secret']) && $_GET['secret'] === 'YOUR_SUPER_SECRET_KEY') {
+            require_once __DIR__ . '/../app/Scripts/GenerateDailySummary.php';
+            echo "Daily summary generation initiated.";
+            exit;
+        }
 
     default:
         http_response_code(404); // Not Found
