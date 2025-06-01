@@ -348,14 +348,11 @@ switch ($request_path) {
         }
         exit;
 
+        // JS CODE FOR ALL
+    case '/smartEnergy/js/dashboard.js': // admin dashboard.js
+        require dirname(__DIR__) . '/public/assets/js/dashboard.js';
+        exit;
 
-        // IMPORTANT: PROTECT THIS ROUTE! Only allow admin access or a secret key.
-        // This is just conceptual, actual routing depends on your framework/setup.
-        if (isset($_GET['action']) && $_GET['action'] === 'generate_daily_summary' && isset($_GET['secret']) && $_GET['secret'] === 'YOUR_SUPER_SECRET_KEY') {
-            require_once __DIR__ . '/../app/Scripts/GenerateDailySummary.php';
-            echo "Daily summary generation initiated.";
-            exit;
-        }
 
     default:
         http_response_code(404); // Not Found
