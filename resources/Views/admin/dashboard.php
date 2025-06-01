@@ -271,19 +271,19 @@ if (!getenv('WEATHER_API_KEY')) {
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div class="bg-white p-4 rounded-lg shadow">
+                <div class="bg-white p-4 rounded-lg shadow" style="max-height: 300px;">
                     <h4 class="text-lg font-semibold text-gray-800 mb-4">Renewable Energy Production (W)</h4>
                     <canvas id="renewableEnergyChart"></canvas>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow">
+                <div class="bg-white p-4 rounded-lg shadow" style="max-height: 300px;">
                     <h4 class="text-lg font-semibold text-gray-800 mb-4">Consumption (W)</h4>
                     <canvas id="consumptionChart"></canvas>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow">
+                <div class="bg-white p-4 rounded-lg shadow" style="max-height: 300px;">
                     <h4 class="text-lg font-semibold text-gray-800 mb-4">Battery Level (Wh)</h4>
                     <canvas id="batteryLevelChart"></canvas>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow">
+                <div class="bg-white p-4 rounded-lg shadow" style="max-height: 300px;">
                     <h4 class="text-lg font-semibold text-gray-800 mb-4">Grid Import / CO2 Emissions</h4>
                     <canvas id="gridCo2Chart"></canvas>
                 </div>
