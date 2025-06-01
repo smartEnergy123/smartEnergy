@@ -145,6 +145,14 @@ switch ($request_path) {
         require dirname(__DIR__) . '/resources/Views/admin/simulateWeather.php';
         break;
 
+    case '/smartEnergy/admin/simulation':
+        if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
+            header('Location: /smartEnergy/simulate.php');
+            exit;
+        }
+        require dirname(__DIR__) . '/resources/Views/admin/simulate.php';
+        break;
+
     // NEW ADMIN REPORT ROUTE
     case '/smartEnergy/admin/reports':
         if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== 'admin') {
@@ -264,6 +272,16 @@ switch ($request_path) {
         }
         exit;
 
+    case '/smartEnergy/appliance-controller/get-simulation-config':
+        if ($requestMethod === 'GET') {
+            $controller = new ApplianceController();
+            $controller->getNewSimulationConfig();
+        } else {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed.']);
+        }
+        exit;
+
         // --- Simulation API Routes (ApplianceController related) ---
     case '/smartEnergy/api/simulation/get-state':
         if ($requestMethod === 'GET') {
@@ -305,7 +323,62 @@ switch ($request_path) {
         }
         exit;
 
-        // NEW API ROUTE: For processing subscriptions, now handled by SubscriptionController
+
+        // Route for fetching daily simulation summary
+    case '/smartEnergy/appliance-controller/get-daily-simulation-summary':
+        $controller = new ApplianceController();
+        if ($requestMethod === 'GET') {
+            $controller->getNewDailySimulationSummary();
+        } else {
+            http_response_code(405); // Method Not Allowed
+            echo json_encode(['success' => false, 'message' => 'Method Not Allowed.']);
+        }
+        break;
+
+    // Route for updating simulation state
+    case '/smartEnergy/appliance-controller/update-simulation-state':
+        $controller = new ApplianceController();
+        if ($requestMethod === 'POST') {
+            // Read raw POST data (JSON body)
+            $input = file_get_contents('php://input');
+            $data = json_decode($input, true); // Decode JSON into associative array
+
+            // Pass data to controller method
+            $controller->updateSimulationState($data);
+        } else {
+            http_response_code(405); // Method Not Allowed
+            echo json_encode(['success' => false, 'message' => 'Method Not Allowed.']);
+        }
+        break;
+
+    // Route for fetching simulation configuration
+    case '/smartEnergy/appliance-controller/get-simulation-config':
+        $controller = new ApplianceController();
+        if ($requestMethod === 'GET') {
+            $controller->getNewSimulationConfig();
+        } else {
+            http_response_code(405); // Method Not Allowed
+            echo json_encode(['success' => false, 'message' => 'Method Not Allowed.']);
+        }
+        break;
+
+    // Route for setting/updating simulation configuration
+    case '/smartEnergy/appliance-controller/set-simulation-config':
+        $controller = new ApplianceController();
+        if ($requestMethod === 'POST') {
+            // Read raw POST data (JSON body)
+            $input = file_get_contents('php://input');
+            $data = json_decode($input, true); // Decode JSON into associative array
+
+            // Pass data to controller method
+            $controller->setSimulationConfig($data);
+        } else {
+            http_response_code(405); // Method Not Allowed
+            echo json_encode(['success' => false, 'message' => 'Method Not Allowed.']);
+        }
+        break;
+
+    // NEW API ROUTE: For processing subscriptions, now handled by SubscriptionController
     case '/smartEnergy/api/process-subscription':
         if ($requestMethod === 'POST') {
             $controller = new SubscriptionController();

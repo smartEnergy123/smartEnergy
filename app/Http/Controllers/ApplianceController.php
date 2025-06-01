@@ -730,4 +730,218 @@ class ApplianceController
             return 0; // Handle error gracefully
         }
     }
+
+    // Existing/New method: Get daily simulation summary
+    public function getNewDailySimulationSummary()
+    {
+        header('Content-Type: application/json');
+        try {
+            // Fetch the most recent daily summary
+            $query = "SELECT * FROM daily_simulation_summaries ORDER BY report_date DESC LIMIT 1";
+            // Corrected: Pass an empty array for $params
+            $summary = $this->db->fetchSingleData($query, []);
+
+            if ($summary) {
+                echo json_encode(['success' => true, 'data' => [
+                    'total_solar_generated' => (float)$summary['total_solar_generated_wh'],
+                    'total_wind_generated' => (float)$summary['total_wind_generated_wh'],
+                    'total_consumption' => (float)$summary['total_consumption_wh'],
+                    'total_grid_import' => (float)($summary['total_grid_import_wh'] ?? 0),
+                    'total_grid_export' => (float)($summary['total_grid_export_wh'] ?? 0),
+                    'total_co2_emissions' => (float)($summary['total_co2_emissions_kg'] ?? 0)
+                ]]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'No daily summary found.']);
+            }
+        } catch (PDOException $e) {
+            error_log("DB Error in getDailySimulationSummary: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        } catch (\Exception $e) {
+            error_log("Error in getDailySimulationSummary: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'An unexpected error occurred: ' . $e->getMessage()]);
+        }
+    }
+
+    // Existing/New method: Update simulation state
+    public function updateSimulationState($data)
+    {
+        header('Content-Type: application/json');
+        try {
+            // Validate and sanitize input data
+            $solar = $data['total_solar_generated'] ?? 0;
+            $wind = $data['total_wind_generated'] ?? 0;
+            $consumption = $data['total_consumption'] ?? 0;
+            $gridImport = $data['total_grid_import'] ?? 0;
+            $gridExport = $data['total_grid_export'] ?? 0;
+            $co2 = $data['co2_emissions'] ?? 0;
+            $cost = $data['current_cost'] ?? 0;
+            $batteryLevel = $data['battery_level'] ?? 0;
+            $simulatedTime = $data['simulated_time_minutes'] ?? 0;
+            $liveConsumption = $data['live_consumption'] ?? 0;
+            $currentCostRate = $data['current_cost_rate'] ?? 0;
+            $dailyQuotaRemaining = $data['daily_quota_remaining'] ?? 0;
+            $currentDailyConsumption = $data['current_daily_consumption'] ?? 0;
+            $numHouses = $data['num_houses'] ?? 0; // Assuming num_houses is sent from frontend for now
+
+            // Get current date for simulation_date and current time for last_updated_time
+            $simulationDate = date('Y-m-d');
+            $lastUpdatedTime = date('Y-m-d H:i:s'); // Use full datetime for consistency
+
+            // IMPORTANT: Using INSERT ... ON DUPLICATE KEY UPDATE for upsert behavior
+            $query = "INSERT INTO simulation_state_new (
+                        simulation_date,
+                        last_updated_time,
+                        total_solar_output_wh,
+                        total_wind_output_wh,
+                        total_consumption_wh,
+                        total_grid_import_wh,
+                        total_grid_export_wh,
+                        co2_emissions_kg,
+                        current_cost_usd,
+                        current_battery_level_wh,
+                        simulated_time_minutes,
+                        live_consumption_w,
+                        current_cost_rate_usd_wh,
+                        daily_quota_remaining_wh,
+                        current_daily_consumption_wh,
+                        num_houses
+                    ) VALUES (
+                        :simulation_date,
+                        :last_updated_time,
+                        :total_solar,
+                        :total_wind,
+                        :total_consumption,
+                        :total_grid_import,
+                        :total_grid_export,
+                        :co2_emissions,
+                        :current_cost,
+                        :battery_level,
+                        :simulated_time_minutes,
+                        :live_consumption,
+                        :current_cost_rate,
+                        :daily_quota_remaining,
+                        :current_daily_consumption,
+                        :num_houses
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        last_updated_time = VALUES(last_updated_time),
+                        total_solar_output_wh = VALUES(total_solar_output_wh),
+                        total_wind_output_wh = VALUES(total_wind_output_wh),
+                        total_consumption_wh = VALUES(total_consumption_wh),
+                        total_grid_import_wh = VALUES(total_grid_import_wh),
+                        total_grid_export_wh = VALUES(total_grid_export_wh),
+                        co2_emissions_kg = VALUES(co2_emissions_kg),
+                        current_cost_usd = VALUES(current_cost_usd),
+                        current_battery_level_wh = VALUES(current_battery_level_wh),
+                        simulated_time_minutes = VALUES(simulated_time_minutes),
+                        live_consumption_w = VALUES(live_consumption_w),
+                        current_cost_rate_usd_wh = VALUES(current_cost_rate_usd_wh),
+                        daily_quota_remaining_wh = VALUES(daily_quota_remaining_wh),
+                        current_daily_consumption_wh = VALUES(current_daily_consumption_wh),
+                        num_houses = VALUES(num_houses);";
+
+            $params = [
+                ':simulation_date' => $simulationDate,
+                ':last_updated_time' => $lastUpdatedTime,
+                ':total_solar' => $solar,
+                ':total_wind' => $wind,
+                ':total_consumption' => $consumption,
+                ':total_grid_import' => $gridImport,
+                ':total_grid_export' => $gridExport,
+                ':co2_emissions' => $co2,
+                ':current_cost' => $cost,
+                ':battery_level' => $batteryLevel,
+                ':simulated_time_minutes' => $simulatedTime,
+                ':live_consumption' => $liveConsumption,
+                ':current_cost_rate' => $currentCostRate,
+                ':daily_quota_remaining' => $dailyQuotaRemaining,
+                ':current_daily_consumption' => $currentDailyConsumption,
+                ':num_houses' => $numHouses
+            ];
+
+            $this->db->execute($query, $params);
+            echo json_encode(['success' => true, 'message' => 'Simulation state updated successfully.']);
+        } catch (PDOException $e) {
+            error_log("DB Error in updateSimulationState: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        } catch (\Exception $e) {
+            error_log("Error in updateSimulationState: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'An unexpected error occurred: ' . $e->getMessage()]);
+        }
+    }
+
+
+    // Existing/New method: Get simulation configuration
+    public function getNewSimulationConfig()
+    {
+        header('Content-Type: application/json');
+        try {
+            $query = "SELECT num_houses, daily_quota_per_house_wh, current_cost_rate FROM simulation_config LIMIT 1";
+            // Corrected: Pass an empty array for $params
+            $config = $this->db->fetchSingleData($query, []);
+
+            if ($config) {
+                echo json_encode(['success' => true, 'data' => [
+                    'num_houses' => (int)$config['num_houses'],
+                    'daily_quota' => (int)$config['daily_quota_per_house_wh'], // Corrected column name based on query
+                    'cost_rate' => (float)$config['current_cost_rate'] // Corrected column name based on query
+                ]]);
+            } else {
+                // If no config found, return defaults and optionally insert them
+                $defaultConfig = [
+                    'num_houses' => 5,
+                    'daily_quota' => 10000,
+                    'cost_rate' => 0.00015
+                ];
+                // Optionally, insert these defaults into the DB here if they don't exist
+                // $this->db->execute("INSERT INTO simulation_config (num_houses, daily_quota_per_house_wh, current_cost_rate) VALUES (?, ?, ?)", array_values($defaultConfig));
+                echo json_encode(['success' => true, 'data' => $defaultConfig, 'message' => 'Using default config.']);
+            }
+        } catch (PDOException $e) {
+            error_log("DB Error in getSimulationConfig: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        } catch (\Exception $e) {
+            error_log("Error in getSimulationConfig: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'An unexpected error occurred: ' . $e->getMessage()]);
+        }
+    }
+
+
+
+    // Existing/New method: Set simulation configuration
+    public function setNewSimulationConfig($data)
+    {
+        header('Content-Type: application/json');
+        try {
+            // Validate and sanitize input
+            $numHouses = $data['num_houses'] ?? 0;
+            $dailyQuota = $data['daily_quota'] ?? 0;
+            $costRate = $data['cost_rate'] ?? 0.0;
+
+            // Check if a config already exists to decide between INSERT or UPDATE
+            $existingConfig = $this->db->fetchSingleData("SELECT COUNT(*) FROM simulation_config", []); // Corrected
+            if ($existingConfig && $existingConfig['COUNT(*)'] > 0) {
+                // Update existing config (assuming only one row for config)
+                $query = "UPDATE simulation_config SET num_houses = :num_houses, daily_quota_per_house_wh = :daily_quota, current_cost_rate = :cost_rate WHERE id = 1"; // Assuming ID 1 for single config row
+            } else {
+                // Insert new config
+                $query = "INSERT INTO simulation_config (num_houses, daily_quota_per_house_wh, current_cost_rate) VALUES (:num_houses, :daily_quota, :cost_rate)";
+            }
+
+            $params = [
+                ':num_houses' => $numHouses,
+                ':daily_quota' => $dailyQuota,
+                ':cost_rate' => $costRate
+            ];
+
+            $this->db->execute($query, $params);
+            echo json_encode(['success' => true, 'message' => 'Simulation configuration updated successfully.']);
+        } catch (PDOException $e) {
+            error_log("DB Error in setSimulationConfig: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        } catch (\Exception $e) {
+            error_log("Error in setSimulationConfig: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'An unexpected error occurred: ' . $e->getMessage()]);
+        }
+    }
 }

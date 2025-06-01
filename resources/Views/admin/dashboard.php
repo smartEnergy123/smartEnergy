@@ -100,7 +100,7 @@ if (!getenv('WEATHER_API_KEY')) {
                 <i class="fas fa-file-alt mr-3"></i>
                 Reports
             </a>
-            <a href="/smartEnergy/admin/simulate" class="block hover:bg-gray-700 p-2 rounded text-white">
+            <a href="/smartEnergy/admin/simulation" class="block hover:bg-gray-700 p-2 rounded text-white">
                 <i class="fas fa-microchip mr-3"></i>
                 Simulate
             </a>
