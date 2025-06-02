@@ -895,8 +895,16 @@ class ApplianceController
             } else {
                 // If config exists, update the num_houses with the online count
                 // Assuming ID 1 for single config row as per previous discussion
-                $updateQuery = "UPDATE simulation_config SET num_houses = :num_houses WHERE id = 1";
-                $updateParams = [':num_houses' => $onlineHouses];
+
+                $query_old = "SELECT num_houses, daily_quota_per_house_wh, current_cost_rate FROM simulation_config LIMIT 1";
+                $config_old = $this->db->fetchSingleData($query_old, []);
+
+                $updateQuery = "UPDATE simulation_config SET num_houses = :num_houses,daily_quota_per_house_wh = :daily_quota, current_cost_rate = :cost_rate  WHERE id = 1";
+                $updateParams = [
+                    ':num_houses' => $onlineHouses,
+                    ':daily_quota' => $config_old['daily_quota_per_house_wh'] ?? 10000,
+                    ':cost_rate' => $config_old['current_cost_rate'] ?? 0.00015
+                ];
                 $this->db->execute($updateQuery, $updateParams);
             }
 
