@@ -876,26 +876,48 @@ class ApplianceController
     {
         header('Content-Type: application/json');
         try {
+            // 1. Get the current number of online users
+            $onlineHouses = $this->getOnlineUserCount();
+
+            // 2. Check if a config already exists
+            $existingConfigCheck = $this->db->fetchSingleData("SELECT COUNT(*) AS count FROM simulation_config", []);
+            $configExists = ($existingConfigCheck && $existingConfigCheck['count'] > 0);
+
+            if (!$configExists) {
+                // If no config exists, insert a default one with the current online house count
+                $insertQuery = "INSERT INTO simulation_config (num_houses, daily_quota_per_house_wh, current_cost_rate) VALUES (:num_houses, :daily_quota, :cost_rate)";
+                $insertParams = [
+                    ':num_houses' => $onlineHouses,
+                    ':daily_quota' => 10000,
+                    ':cost_rate' => 0.00015
+                ];
+                $this->db->execute($insertQuery, $insertParams);
+            } else {
+                // If config exists, update the num_houses with the online count
+                // Assuming ID 1 for single config row as per previous discussion
+                $updateQuery = "UPDATE simulation_config SET num_houses = :num_houses WHERE id = 1";
+                $updateParams = [':num_houses' => $onlineHouses];
+                $this->db->execute($updateQuery, $updateParams);
+            }
+
+            // 3. Now, fetch the simulation configuration, which will include the (potentially newly inserted or updated) num_houses
             $query = "SELECT num_houses, daily_quota_per_house_wh, current_cost_rate FROM simulation_config LIMIT 1";
-            // Corrected: Pass an empty array for $params
             $config = $this->db->fetchSingleData($query, []);
 
             if ($config) {
                 echo json_encode(['success' => true, 'data' => [
                     'num_houses' => (int)$config['num_houses'],
-                    'daily_quota' => (int)$config['daily_quota_per_house_wh'], // Corrected column name based on query
-                    'cost_rate' => (float)$config['current_cost_rate'] // Corrected column name based on query
+                    'daily_quota' => (int)$config['daily_quota_per_house_wh'],
+                    'cost_rate' => (float)$config['current_cost_rate']
                 ]]);
             } else {
-                // If no config found, return defaults and optionally insert them
-                $defaultConfig = [
-                    'num_houses' => 5,
+                // This else block should ideally not be reached if the above logic correctly inserts/updates
+                // But as a fallback, return the default with online houses
+                echo json_encode(['success' => true, 'data' => [
+                    'num_houses' => $onlineHouses,
                     'daily_quota' => 10000,
                     'cost_rate' => 0.00015
-                ];
-                // Optionally, insert these defaults into the DB here if they don't exist
-                // $this->db->execute("INSERT INTO simulation_config (num_houses, daily_quota_per_house_wh, current_cost_rate) VALUES (?, ?, ?)", array_values($defaultConfig));
-                echo json_encode(['success' => true, 'data' => $defaultConfig, 'message' => 'Using default config.']);
+                ], 'message' => 'Using default config as no row found after attempted upsert.']);
             }
         } catch (PDOException $e) {
             error_log("DB Error in getSimulationConfig: " . $e->getMessage());
@@ -905,7 +927,6 @@ class ApplianceController
             echo json_encode(['success' => false, 'message' => 'An unexpected error occurred: ' . $e->getMessage()]);
         }
     }
-
 
 
     // Existing/New method: Set simulation configuration
