@@ -362,6 +362,29 @@ switch ($request_path) {
         }
         break;
 
+    // Route for updating the user daily quota
+    case '/smartEnergy/api/updateUserDailyQuota':
+        $controller = new ApplianceController();
+        if ($requestMethod === 'POST') {
+            // Get the raw POST data (JSON)
+            $rawData = file_get_contents('php://input');
+            // Decode the JSON data into a PHP associative array
+            $data = json_decode($rawData, true);
+
+            // Check if JSON decoding was successful and data is not null
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+                http_response_code(400); // Bad Request
+                echo json_encode(['success' => false, 'message' => 'Invalid JSON data provided.']);
+                break; // Exit the case
+            }
+
+            $controller->updateUserDailyQuota($data); // Pass the decoded data to the controller method
+        } else {
+            http_response_code(405); // Method Not Allowed
+            echo json_encode(['success' => false, 'message' => 'Method Not Allowed.']);
+        }
+        break;
+
     // Route for setting/updating simulation configuration
     case '/smartEnergy/appliance-controller/set-simulation-config':
         $controller = new ApplianceController();

@@ -973,4 +973,37 @@ class ApplianceController
             echo json_encode(['success' => false, 'message' => 'An unexpected error occurred: ' . $e->getMessage()]);
         }
     }
+
+
+    // New method: Update a specific user's daily quota in client_profiles
+    public function updateUserDailyQuota($data)
+    {
+        header('Content-Type: application/json');
+        try {
+            $userId = $data['user_id'] ?? null;
+            $newQuotaValue = $data['new_quota_value'] ?? 0; // Default to 0 to mark as exhausted
+
+            if ($userId === null) {
+                echo json_encode(['success' => false, 'message' => 'User ID is required.']);
+                return;
+            }
+
+            // Update the daily_quota_wh for the specific user
+            // You might want to add a check here to ensure the user exists
+            $query = "UPDATE client_profiles SET daily_quota_wh = :new_quota_value WHERE user_id = :user_id";
+            $params = [
+                ':new_quota_value' => $newQuotaValue,
+                ':user_id' => $userId
+            ];
+            $this->db->execute($query, $params);
+
+            echo json_encode(['success' => true, 'message' => 'User daily quota updated successfully.']);
+        } catch (PDOException $e) {
+            error_log("DB Error in updateUserDailyQuota: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        } catch (Exception $e) {
+            error_log("Error in updateUserDailyQuota: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'An unexpected error occurred: ' . $e->getMessage()]);
+        }
+    }
 }

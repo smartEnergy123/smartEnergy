@@ -598,8 +598,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
 
             /**
              * Updates the client-side display of daily consumption and checks against the quota.
-             * This function simulates accumulation for display purposes; actual accumulation
-             * should be handled persistently on the backend.
+             * This function simulates accumulation for display purposes;
              */
 
             function updateDailyConsumptionSimulation() {
@@ -621,6 +620,42 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                             stopAllAppliances(); // Stop all appliances
                         }
                         showQuotaModal(); // Show the modal
+
+
+                        // --- NEW CODE STARTS HERE ---
+                        const currentUserIdMeta = userId;
+                        const currentUserId = currentUserIdMeta ? currentUserIdMeta : null;
+
+                        if (currentUserId) {
+                            // API call to update daily_quota_wh to 0 in client_profiles table
+                            fetch('/smartEnergy/api/updateUserDailyQuota', { // Adjust URL path as per your routing
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        user_id: currentUserId,
+                                        new_quota_value: 0 // Set quota to 0 to mark as used up for the day
+                                    }),
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        console.log('Daily quota updated on server to 0:', data.message);
+                                        // Optionally, update the client-side userDailyQuotaWh to 0 immediately
+                                        userDailyQuotaWh = 0; // This ensures the client-side also reflects the server state
+                                    } else {
+                                        console.error('Failed to update daily quota on server:', data.message);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error sending daily quota update request:', error);
+                                });
+                        } else {
+                            console.error('User ID not found for quota update.');
+                        }
+                        // --- NEW CODE ENDS HERE ---
+
                     } else {
                         const remaining = userDailyQuotaWh - userDailyConsumptionWh;
                         quotaStatusSpan.textContent = `Remaining Quota: ${Math.round(remaining)} Wh`;
