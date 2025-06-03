@@ -3,7 +3,7 @@
         'name' => 'hp/smart-energy',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'faa67712dce46062792e620ea1b8d24f9e74f3fc',
+        'reference' => 'fa18323b211b95618cdab982532acbcced4ed5fc',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'hp/smart-energy' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'faa67712dce46062792e620ea1b8d24f9e74f3fc',
+            'reference' => 'fa18323b211b95618cdab982532acbcced4ed5fc',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

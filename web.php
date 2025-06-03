@@ -134,7 +134,7 @@ switch ($request_path) {
             header('Location: /smartEnergy/login');
             exit;
         }
-        require dirname(__DIR__) . '/resources/Views/admin/powerStats.php';
+        require dirname(__DIR__) . '/resources/Views/admin/PowerStats.php';
         break;
 
     case '/smartEnergy/admin/simulateWeather':
