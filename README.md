@@ -75,3 +75,38 @@ Supports PHP + MySQL and has been tested with:
 
 ## 📁 Folder Structure (Simplified)
 
+/smartEnergy/
+│
+├── index.php # Landing/Login page
+├── /admin/ # Admin dashboard and simulation logic
+├── /client/ # Client dashboard
+├── /assets/ # Images, logos
+├── /css/ # Tailwind CSS styles
+├── /js/ # Load toggling and real-time updates
+├── /services/ # Backend logic and simulation
+├── /includes/ # Header, footer, session config
+└── /database/ # DB connection and queries
+
+
+
+---
+
+## 🧠 Future Improvements (Post-MVP)
+
+- Add **payment system** for subscription or extra energy purchases
+- Integrate with **real sensors** (ESP32/Arduino for hardware)
+- Notification system for low battery or excessive usage
+- Advanced user roles (landlord, maintenance, etc.)
+- PWA (Progressive Web App) version for mobile control
+
+---
+
+## 📜 License
+
+This project is for educational and hackathon use.
+Feel free to modify and expand upon it with attribution.
+
+---
+
+> Made with ☀️, 💨, and code by Kingsley.
+
