@@ -67,28 +67,10 @@ Supports PHP + MySQL and has been tested with:
 
 > 🧪 Replace with real credentials if needed for test purposes.
 
-- **URL**: `https://yourdomain.awardspace.info/admin`
-- **Username**: `admin`
-- **Password**: `admin123`
-
----
-
-## 📁 Folder Structure (Simplified)
-
-/smartEnergy/
-│
-├── index.php # Landing/Login page
-├── /admin/ # Admin dashboard and simulation logic
-├── /client/ # Client dashboard
-├── /assets/ # Images, logos
-├── /css/ # Tailwind CSS styles
-├── /js/ # Load toggling and real-time updates
-├── /services/ # Backend logic and simulation
-├── /includes/ # Header, footer, session config
-└── /database/ # DB connection and queries
-
-
-
+- **URL**: `http://smartenergyuk.atwebpages.com/smartEnergy/login`
+- **Username**:
+- **Password**:
+NOTE: If You want to view the admin dashboard, send a request.
 ---
 
 ## 🧠 Future Improvements (Post-MVP)
