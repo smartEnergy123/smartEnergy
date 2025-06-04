@@ -30,9 +30,9 @@ class ReportController
      * Helper method to send a consistent JSON response and terminate script execution.
      * Copied from ApplianceController for consistency.
      *
-     * @param string $status The status of the raesponse (e.g., 'success', 'error').
+     * @param string $status The status of the response ( 'success', 'error').
      * @param string $message A human-readable message.
-     * @param int $statusCode The HTTP status code (e.g., 200, 400, 500).
+     * @param int $statusCode The HTTP status code ( 200, 400, 500).
      * @param array $data Optional additional data to include in the response.
      */
     private function sendJsonResponse($status, $message, $statusCode = 200, $data = [])

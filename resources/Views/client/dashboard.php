@@ -628,7 +628,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
 
                         if (currentUserId) {
                             // API call to update daily_quota_wh to 0 in client_profiles table
-                            fetch('/smartEnergy/api/updateUserDailyQuota', { // Adjust URL path as per your routing
+                            fetch('/smartEnergy/api/updateUserDailyQuota', {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -665,7 +665,6 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
                             hideQuotaModal();
                             // If a top-up occurred, you'd also need to re-enable appliance toggling
                             appliancesStoppedDueToQuota = false; // Allow toggling again
-                            // Optionally, re-render appliances to ensure they are clickable again
                             // renderAppliances(); // This might be too heavy, just ensure pointer-events are reset
                         }
 

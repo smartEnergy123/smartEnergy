@@ -6,8 +6,7 @@ use PDO;
 use PDOException;
 use Dotenv\Dotenv;
 
-// Ensure Composer's autoloader is included. This line is crucial for Dotenv to be found.
-// This path assumes DB.php is in app/Models/ and vendor/ is in the project root.
+
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 class DB
@@ -16,7 +15,7 @@ class DB
     private $password;
     private $host;
     private $dbname;
-    private $conn; // This will hold the PDO connection object
+    private $conn;
 
     public function closeConnection()
     {
@@ -25,8 +24,6 @@ class DB
 
     public function __construct()
     {
-        // Load environment variables using Dotenv
-        // The path to .env file is two directories up from app/Models/DB.php
         $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
         $dotenv->load();
 
@@ -35,10 +32,9 @@ class DB
         $this->username = $_ENV['DB_USERNAME'];
         $this->host = $_ENV['DB_HOST'];
 
-        // Attempt to establish the database connection immediately
+        // Attempt to establish the database connection
         try {
-            // DSN (Data Source Name) string for MySQL
-            // Ensure port is correct, 3306 is standard for MySQL
+
             $dsn = "mysql:host={$this->host};dbname={$this->dbname};port=3306;charset=utf8mb4";
 
             // PDO options for error handling and fetching mode
@@ -53,11 +49,6 @@ class DB
             // Log the detailed error message to PHP's error log
             error_log("DB Connection Failed: " . $e->getMessage());
 
-            // Instead of echoing, which can break JSON responses,
-            // let the exception propagate or handle it in a way
-            // that doesn't interfere with API output.
-            // Since ApplianceController's constructor checks $this->db->connection(),
-            // it will catch this failure and send a proper JSON error.
             $this->conn = null; // Ensure connection is null on failure
         }
     }

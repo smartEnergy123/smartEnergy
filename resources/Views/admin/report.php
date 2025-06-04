@@ -4,8 +4,7 @@ if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== '
     exit;
 }
 
-// Ensure GenerateDailySummary.php is included AFTER session_start()
-// This script will set $_SESSION['success'] or $_SESSION['error']
+
 // require_once __DIR__ . '/../../../app/Scripts/GenerateDailySummary.php';
 
 
@@ -255,7 +254,6 @@ if (isset($_SESSION['success'])) {
                 // messageContainer is already visible because it's rendered by PHP
                 setTimeout(() => {
                     messageContainer.classList.add('hidden');
-                    // Optionally remove the element from DOM after it's hidden to free up space/resources
                     setTimeout(() => messageContainer.remove(), 500); // 500ms for transition
                 }, 10000); // Hide after 10 seconds
             }
@@ -461,7 +459,7 @@ if (isset($_SESSION['success'])) {
                 });
             }
 
-            // Initial fetch of data when the page loads (e.g., for today's date)
+            // Initial fetch of data when the page loads ( for today's date)
             fetchReportData();
         });
     </script>
