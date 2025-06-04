@@ -6,7 +6,7 @@ if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== '
 
 // Ensure GenerateDailySummary.php is included AFTER session_start()
 // This script will set $_SESSION['success'] or $_SESSION['error']
-require_once __DIR__ . '/../../../app/Scripts/GenerateDailySummary.php';
+// require_once __DIR__ . '/../../../app/Scripts/GenerateDailySummary.php';
 
 
 $username = $_SESSION['user_data']['username'] ?? 'Admin';

@@ -61,34 +61,33 @@ function generateSmoothProfile(sparseDataKw, sparseIntervalMinutes, denseInterva
 const sparseIntervalMinutes = 30;
 
 const consumed_pv_may5_table_kw_sparse = [
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.9,
-    1.0, 2.63, 2.85, 2.55, 2.55, 2.70,
-    2.60, 2.45, 2.81, 2.95,
-    3.00, 3.00, 3.00, 3.00,
-    3.00, 2.75, 1.95, 2.20,
-    2.73, 2.50, 1.95, 1.50,
-    1.50, 1.75, 1.58, 1.20,
-    2.00, 0.70, 0.00, 0.00,
+    0.0, 0.0, 1.0, 1.6, 1.7, 1.2, 1.0,
+    1.60, 1.45, 1.81, 1.95,
+    1.00, 1.00, 1.00, 1.00,
+    0.73, 0.50, 0.95, 1.50,
+    1.73, 1.50, 2.0, 1.50,
+    0.50, 0.20, 0.00, 0.00,
+    0.10, 0.10, 0.50, 0.00,
     0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00
 ];
+
 while (consumed_pv_may5_table_kw_sparse.length < 48) {
     consumed_pv_may5_table_kw_sparse.push(0.0);
 }
 const may5_profile = generateSmoothProfile(consumed_pv_may5_table_kw_sparse.slice(0, 48), sparseIntervalMinutes, SIMULATION_TIME_INCREMENT_MINUTES);
 
 const consumed_pv_may1_refined_kw_sparse = [
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2,
-    0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.8,
-    4.0, 4.1, 4.2, 4.1,
-    4.0, 3.8, 3.5, 3.0,
-    3.0, 2.7,
+    0.0, 1.3, 1.3, 2.0, 0.0, 0.4, 1.5,
+    1.8, 4.0, 2.3, 1.3, 1.2, 2.0, 0.2,
+    0.5, 1.0, 1.5, 2.0, 0.0, 2.0, 1.5, 1.8,
+    1.3, 3.1, 4.2, 4.1,
+    1.0, 4.0, 4.5, 3.9,
+    2.0, 3.7,
     0.8,
-    2.1, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0
+    2.0, 2.0,
+    1.6, 1.4, 1.3, 1.2, 1.2,
+    0.6, 1.0, 1.9, 2.2, 0.0, 1.3,
+    1.2
 ];
 while (consumed_pv_may1_refined_kw_sparse.length < 48) {
     consumed_pv_may1_refined_kw_sparse.push(0.0);
@@ -712,6 +711,8 @@ async function runSimulationStep() {
     }
 
 
+    // Generates the solar power on chart === solarGenerationWh
+
     // Get consumption and solar/wind generation for the current minute
     const profileIndex = Math.floor(currentSimulationTime / SIMULATION_TIME_INCREMENT_MINUTES); // Index for the 1-minute profile
     const solarGenerationWh = (activeSolarProfile[profileIndex] || 0) * (lastWeatherData.condition.toLowerCase() === 'clear' ? 1 : (lastWeatherData.clouds ? (1 - (lastWeatherData.clouds / 100) * 0.7) : 1)); // Adjust based on cloudiness
@@ -916,6 +917,9 @@ document.getElementById("sidebar-toggle-btn").addEventListener("click", toggleSi
 solarProfileSelect.addEventListener("change", async () => {
     if (solarProfileSelect.value === 'default') {
         lastWeatherData = await fetchWeather(); // Fetch live weather again
+
+        console.log("========CHECK ME OUT===============", lastWeatherData);
+
         currentWeatherSpan.textContent = `Weather: ${lastWeatherData.condition}, Wind: ${lastWeatherData.wind.toFixed(1)} km/h, Temp: ${lastWeatherData.temperature.toFixed(1)}°C`;
     } else {
         currentWeatherSpan.textContent = `Solar Profile: ${solarProfileSelect.options[solarProfileSelect.selectedIndex].text}`;
@@ -927,3 +931,65 @@ solarProfileSelect.addEventListener("change", async () => {
     // For now, session totals will continue to accumulate.
 });
 
+
+
+// ACTUAL DATASET
+/*
+
+const consumed_pv_may5_table_kw_sparse = [
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.9,
+    1.0, 2.63, 2.85, 2.55, 2.55, 2.70,
+    2.60, 2.45, 2.81, 2.95,
+    3.00, 3.00, 3.00, 3.00,
+    3.00, 2.75, 1.95, 2.20,
+    2.73, 2.50, 1.95, 1.50,
+    1.50, 1.75, 1.58, 1.20,
+    2.00, 0.70, 0.00, 0.00,
+    0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00
+];
+
+const consumed_pv_may1_refined_kw_sparse = [
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2,
+    0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.8,
+    4.0, 4.1, 4.2, 4.1,
+    4.0, 3.8, 3.5, 3.0,
+    3.0, 2.7,
+    0.8,
+    2.1, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0
+];
+
+const consumed_pv_may2_refined_kw_sparse = [
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2,
+    0.5, 1.0, 1.5, 2.0, 2.5,
+    3.0,
+    3.5,
+    4.0,
+    4.3,
+    4.5,
+    4.4,
+    3.0,
+    4.2,
+    4.5,
+    1.0,
+    1.8,
+    0.8,
+    3.9,
+    4.2,
+    0.7,
+    1.0,
+    0.5,
+    0.4,
+    0.8,
+    0.5,
+    0.2,
+    0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0
+];
+*/

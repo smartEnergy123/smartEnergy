@@ -65,7 +65,8 @@ try {
     $batteryStart = (float)($firstRecord['current_battery_level_wh'] ?? 0.0);
 
 
-    $netEnergyBalance = ($totalSolar + $totalWind) - $totalConsumption;
+    $netEnergyBalance = ($totalSolar + $totalWind) - $totalConsumption / 0.5;
+    // $netEnergyBalance = ($totalSolar + $totalWind) - $totalConsumption;
 
     // Determine day classification based on net energy balance (example logic)
     $dayClassification = 'Average';
@@ -76,6 +77,8 @@ try {
     } else {
         $dayClassification = 'Bad';
     }
+
+    // Get the u
 
     $numActiveHouses = (int)($dailyData['num_active_houses'] ?? 0);
 
