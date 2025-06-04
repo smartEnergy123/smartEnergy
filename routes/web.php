@@ -29,7 +29,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
 // --- Handle dynamic routes first to avoid conflicts with static routes ---
 // This must come BEFORE the switch statement.
-// Handle dynamic routes for user details (e.g., /smartEnergy/api/admin/users/123)
+// Handle dynamic routes for user details
 // It's a simple regex match for a numeric ID, including the /smartEnergy/ base path.
 if (preg_match('/^\/smartEnergy\/api\/admin\/users\/(\d+)$/', $request_path, $matches)) {
     $userId = $matches[1];
