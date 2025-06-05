@@ -1,14 +1,11 @@
 <?php
-// routes/web.php
 
-// The autoloader (usually set up in index.php) will handle loading classes
-// like App\Http\Controllers\ApplianceController and App\Models\DB based on PSR-4.
 
 use Dotenv\Dotenv;
 use App\Http\Controllers\ApplianceController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\ReportController; // NEW: Import the ReportController
+use App\Http\Controllers\ReportController;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -47,7 +44,7 @@ if (preg_match('/^\/smartEnergy\/api\/admin\/users\/(\d+)$/', $request_path, $ma
 switch ($request_path) {
     // --- Existing Web Routes ---
     case '/smartEnergy/': // Matches /smartEnergy/
-    case '/': // Matches root if accessed directly (e.g., http://localhost/)
+    case '/': // Matches root if accessed directly
         require dirname(__DIR__) . '/resources/Views/landing.php';
         break;
     case '/smartEnergy/login':
