@@ -17,6 +17,9 @@ $targetDate = (new DateTime('yesterday'))->format('Y-m-d');
 
 $_SESSION['success'] =  "--- Generating Daily Summary for: " . $targetDate . " ---\n";
 
+// Set the generate_daily_summary flag
+$_SESSION['generate_daily_summary'] = true;
+
 $db = new DB();
 
 try {
@@ -154,3 +157,7 @@ try {
 } finally {
     $db->closeConnection();
 }
+
+unset($_SESSION['generate_daily_summary']);
+
+require __DIR__ . '/../../resources/Views/admin/report.php';

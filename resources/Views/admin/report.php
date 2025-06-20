@@ -5,7 +5,9 @@ if (!isset($_SESSION['user_state']) || $_SESSION['user_data']['user_type'] !== '
 }
 
 
-// require_once __DIR__ . '/../../../app/Scripts/GenerateDailySummary.php';
+if (!isset($_SESSION['generate_daily_summary'])) {
+    require_once __DIR__ . '/../../../app/Scripts/GenerateDailySummary.php';
+}
 
 
 $username = $_SESSION['user_data']['username'] ?? 'Admin';
