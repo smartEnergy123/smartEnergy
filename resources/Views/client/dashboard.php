@@ -326,6 +326,7 @@ $username = $_SESSION['user_data']['username'] ?? 'User';
              * Renders the appliance grid dynamically based on the 'appliances' array.
              * Each appliance gets a card with its icon, name, wattage, and a toggle switch.
              */
+
             function renderAppliances() {
                 console.log("renderAppliances called.");
                 if (!applianceGrid) {
