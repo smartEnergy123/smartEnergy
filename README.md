@@ -1,10 +1,10 @@
-# ⚡ SmartEnergy - Smart Power Allocation & Monitoring System
+# SmartEnergy - Smart Power Allocation & Monitoring System
 
 SmartEnergy is a web-based energy management system designed for small residential estates powered by solar and/or wind energy. It allows **administrators** to simulate energy generation and consumption conditions, and enables **tenants (clients)** to monitor their energy use and control loads like fans, TVs, and refrigerators in real time.
 
 ---
 
-## 🚀 Purpose & Main Aim
+## Purpose & Main Aim
 
 The project aims to:
 - Promote fair, optimized usage of renewable energy within shared environments.
@@ -14,7 +14,7 @@ The project aims to:
 
 ---
 
-## 🧑‍💼 Admin Panel Features
+## Admin Panel Features
 
 - Simulate **solar/wind energy** based on weather conditions
 - View **battery storage** status and system stats
@@ -24,7 +24,7 @@ The project aims to:
 
 ---
 
-## 👤 Client Dashboard Features
+## Client Dashboard Features
 
 - Log in securely
 - View **daily energy allocation**
@@ -38,7 +38,7 @@ The project aims to:
 
 ---
 
-## 🧰 Tech Stack
+## Tech Stack
 
 ### Frontend:
 - **HTML5**, **Tailwind CSS** – Responsive and animated UI
@@ -52,7 +52,7 @@ The project aims to:
 
 ---
 
-## 🌐 Deployment
+## Deployment
 
 Hosted using **AwardSpace** (free web hosting).
 Supports PHP + MySQL and has been tested with:
@@ -63,9 +63,9 @@ Supports PHP + MySQL and has been tested with:
 
 ---
 
-## 🔐 Admin Access (Example)
+## Admin Access (Example)
 
-> 🧪 Replace with real credentials if needed for test purposes.
+> Replace with real credentials if needed for test purposes.
 
 - **URL**: `http://smartenergyuk.atwebpages.com/smartEnergy/login`
 - **Username**:
@@ -73,7 +73,7 @@ Supports PHP + MySQL and has been tested with:
 NOTE: If You want to view the admin dashboard, send a request.
 ---
 
-## 🧠 Future Improvements (Post-MVP)
+## Future Improvements (Post-MVP)
 
 - Add **payment system** for subscription or extra energy purchases
 - Integrate with **real sensors** (ESP32/Arduino for hardware)
@@ -83,7 +83,7 @@ NOTE: If You want to view the admin dashboard, send a request.
 
 ---
 
-## 📜 License
+## License
 
 This project is for educational and hackathon use.
 Feel free to modify and expand upon it with attribution.
