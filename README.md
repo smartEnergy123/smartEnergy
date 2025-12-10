@@ -90,5 +90,5 @@ Feel free to modify and expand upon it with attribution.
 
 ---
 
-> Made with ☀️, 💨, and code by Kingsley.
+> Made by Kingsley.
 
